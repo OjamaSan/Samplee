@@ -1,0 +1,101 @@
+// src/data/questions/rnb01.js
+
+export const RNB01_QUESTIONS = [
+  {
+    id: 'RnB01_Q01',
+    stageId: 'rnb_classics_1',
+    order: 0,
+    title: 'The Chi-Lites - Are You My Woman (Tell Me So) (1970)',
+    coverSource: require('../../../assets/images/covers/RnB01/RnB01_Q01_question_cover.jpg'),
+    audioSource: require('../../../assets/audio/RnB01/RnB01_Q01_sample.mp3'),
+    correctAnswer: {
+      artist: 'Beyonce ft. JAY-Z',
+      song: 'Crazy In Love (2003)',
+    },
+    answerTitle: 'Beyonce ft. JAY-Z – Crazy In Love (2003)',
+    answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q01_answer_cover.jpg'),
+    correctionAudioSource: require('../../../assets/audio/RnB01/RnB01_Q01_correction.mp3'),
+    correctionSteps: [
+      { at: 0, text: 'bpm -14' },
+      { at: 5, text: 'bpm -14 / pitch -2.3' },
+      { at: 10, reveal: true },
+    ],
+  },
+  {
+    id: 'RnB01_Q02',
+    stageId: 'rnb_classics_1',
+    order: 1,
+    title: 'Santana - Maria Maria (1999)',
+    coverSource: require('../../../assets/images/covers/RnB01/RnB01_Q02_question_cover.jpg'),
+    audioSource: require('../../../assets/audio/RnB01/RnB01_Q02_sample.mp3'),
+    correctAnswer: {
+      artist: 'DJ Khaled ft. Rihanna, Bryson Tiller',
+      song: 'Wild Thoughts (2017)',
+    },
+    answerTitle: 'DJ Khaled ft. Rihanna, Bryson Tiller – Wild Thoughts (2017)',
+    answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q02_answer_cover.jpg'),
+    correctionAudioSource: require('../../../assets/audio/RnB01/RnB01_Q02_correction.mp3'),
+    correctionSteps: [
+      { at: 0, text: 'pitch +3' },
+      { at: 10, reveal: true },
+    ],
+  },
+  {
+    id: 'RnB01_Q03',
+    stageId: 'rnb_classics_1',
+    order: 2,
+    title: 'The Moments - Love on a Two-Way Street (1968)',
+    coverSource: require('../../../assets/images/covers/RnB01/RnB01_Q03_question_cover.jpg'),
+    audioSource: require('../../../assets/audio/RnB01/RnB01_Q03_sample.mp3'),
+    correctAnswer: {
+      artist: 'Jay-Z ft. Alicia Keys',
+      song: 'Empire State of Mind (2009)',
+    },
+    answerTitle: 'Jay-Z ft. Alicia Keys – Empire State of Mind (2009)',
+    answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q03_answer_cover.jpg'),
+    correctionAudioSource: require('../../../assets/audio/RnB01/RnB01_Q03_correction.mp3'),
+    correctionSteps: [
+      { at: 0, text: 'pitch +1' },
+      { at: 7, text: 'pitch +1 / bpm +33' },
+      { at: 13, reveal: true },
+    ],
+  },
+  {
+    id: 'RnB01_Q04',
+    stageId: 'rnb_classics_1',
+    order: 3,
+    title: 'Will.I.Am - Impatient (2007)',
+    coverSource: require('../../../assets/images/covers/RnB01/RnB01_Q04_question_cover.jpg'),
+    audioSource: require('../../../assets/audio/RnB01/RnB01_Q04_sample.mp3'),
+    correctAnswer: {
+      artist: 'Estelle ft. Kanye West',
+      song: 'American Boy (2008)',
+    },
+    answerTitle: 'Estelle ft. Kanye West – American Boy (2008)',
+    answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q04_answer_cover.jpg'),
+    correctionAudioSource: require('../../../assets/audio/RnB01/RnB01_Q04_correction.mp3'),
+    correctionSteps: [
+      { at: 0, text: 'bpm -9' },
+      { at: 8, reveal: true },
+    ],
+  },
+  {
+    id: 'RnB01_Q05',
+    stageId: 'rnb_classics_1',
+    order: 4,
+    title: 'Balkan Beat Box - Hermetico (2007)',
+    coverSource: require('../../../assets/images/covers/RnB01/RnB01_Q05_question_cover.jpg'),
+    audioSource: require('../../../assets/audio/RnB01/RnB01_Q05_sample.mp3'),
+    correctAnswer: {
+      artist: 'Jason Derulo ft. 2 Chainz',
+      song: 'Talk Dirty (2013)',
+    },
+    answerTitle: 'Jason Derulo ft. 2 Chainz – Talk Dirty (2013)',
+    answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q05_answer_cover.jpg'),
+    correctionAudioSource: require('../../../assets/audio/RnB01/RnB01_Q05_correction.mp3'),
+    correctionSteps: [
+      { at: 0, text: 'spliced and looped' },
+      { at: 12, reveal: true },
+    ],
+  },
+];
