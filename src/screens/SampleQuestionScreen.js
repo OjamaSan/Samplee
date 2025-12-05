@@ -9,12 +9,12 @@ import {
   TextInput,
 } from 'react-native';
 import { Audio } from 'expo-av';
-import { ScreenContainer } from '../components/ScreenContainer';
-import { Button } from '../components/Button';
-import { theme } from '../theme/theme';
-import { usePlayers } from '../context/PlayersContext';
-import { AVATARS } from '../data/avatars';
-import { getStageTheme } from '../theme/stageTheme';
+import { ScreenContainer } from '@/src/components/ScreenContainer';
+import { Button } from '@/src/components/Button';
+import { theme } from '@/src/theme/theme';
+import { usePlayers } from '@/src/context/PlayersContext';
+import { AVATARS } from '@/src/data/avatars';
+import { getStageTheme } from '@/src/theme/stageTheme';
 
 // utilitaire : retrouver la source d'un avatar à partir de son id
 function getAvatarSource(avatarId) {
