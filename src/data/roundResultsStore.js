@@ -54,3 +54,10 @@ export function resetAllResults() {
     delete results[stageId];
   });
 }
+
+/**
+ * Reset d’un stage (si on le rejoue).
+ */
+export function resetStageResults(stageId) {
+  delete results[stageId];
+}

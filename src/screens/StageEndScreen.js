@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { ScreenContainer } from '../components/ScreenContainer';
-import { Button } from '../components/Button';
-import { theme } from '../theme/theme';
-import { STAGES } from '../data/stages';
-import { getStageTheme } from '../theme/stageTheme';
+import { ScreenContainer } from '@/src/components/ScreenContainer';
+import { Button } from '@/src/components/Button';
+import { theme } from '@/src/theme/theme';
+import { STAGES } from '@/src/data/stages';
+import { getStageTheme } from '@/src/theme/stageTheme';
 
 export function StageEndScreen({ stageId, onSeeAnswers }) {
   const stage = STAGES.find((s) => s.id === stageId);

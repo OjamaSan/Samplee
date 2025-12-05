@@ -3,95 +3,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Audio } from 'expo-av';
-import { ScreenContainer } from '../components/ScreenContainer';
-import { Button } from '../components/Button';
-import { theme } from '../theme/theme';
-import { usePlayers } from '../context/PlayersContext';
-import { AVATARS } from '../data/avatars';
-import { getStageTheme } from '../theme/stageTheme';
+import { ScreenContainer } from '@/src/components/ScreenContainer';
+import { Button } from '@/src/components/Button';
+import { theme } from '@/src/theme/theme';
+import { usePlayers } from '@/src/context/PlayersContext';
+import { AVATARS } from '@/src/data/avatars';
+import { getStageTheme } from '@/src/theme/stageTheme';
+import {
+  computeScoreForPlayer,
+  isArtistCorrect,
+  isSongCorrect,
+} from '@/src/lib/checkAnswer';
 
 // ---------- utils avatars ----------
 function getAvatarSource(avatarId) {
   if (!avatarId) return null;
   const avatar = AVATARS.find((a) => a.id === avatarId);
   return avatar?.source ?? null;
-}
-
-// ---------- utils scoring & fuzzy match ----------
-
-function normalize(str) {
-  return (str || '')
-    .toLowerCase()
-    .replace(/é|è|ê/g, 'e')
-    .replace(/à/g, 'a')
-    .replace(/[^a-z0-9 ]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function levenshtein(a, b) {
-  const m = a.length;
-  const n = b.length;
-  if (m === 0) return n;
-  if (n === 0) return m;
-  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
-      );
-    }
-  }
-  return dp[m][n];
-}
-
-function isCloseMatch(user, expected, maxRatio = 0.35) {
-  const a = normalize(user);
-  const b = normalize(expected);
-  if (!a || !b) return false;
-  const dist = levenshtein(a, b);
-  const maxLen = Math.max(a.length, b.length);
-  return dist <= Math.ceil(maxLen * maxRatio);
-}
-
-
-function isArtistCorrect(userArtist, correctArtist) {
-  const normalized = normalize(correctArtist);
-
-  // On découpe tous les artistes possibles :
-  // "beyonce ft jay z" → ["beyonce", "jay z"]
-  const parts = normalized
-    .split(/\b(ft|ft\.|feat|feat\.|featuring|&|and)\b/g)
-    .map((p) => p.trim())
-    .filter(Boolean);
-
-  // On ajoute aussi la chaîne complète comme candidat
-  const candidates = [normalized, ...parts];
-
-  // Si la réponse du joueur est proche de l’un des artistes → OK
-  return candidates.some((candidate) =>
-    isCloseMatch(userArtist, candidate)
-  );
-}
-
-
-function isSongCorrect(userSong, correctSong) {
-  return isCloseMatch(userSong, correctSong);
-}
-
-function computeScoreForPlayer(playerAnswer, correctAnswer) {
-  if (!playerAnswer) return { artistOk: false, songOk: false, score: 0 };
-
-  const artistOk = isArtistCorrect(playerAnswer.artist, correctAnswer.artist);
-  const songOk = isSongCorrect(playerAnswer.song, correctAnswer.song);
-  const score = (artistOk ? 1 : 0) + (songOk ? 1 : 0);
-
-  return { artistOk, songOk, score };
 }
 
 /**
@@ -129,11 +57,17 @@ export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) 
     ? question.answerCoverSource
     : question.coverSource;
 
+  // scores + détail (artistOk / songOk) par joueur
   const scoresByPlayer = useMemo(() => {
     const result = {};
     players.forEach((p) => {
       const ans = answersByPlayer?.[p.id] || { artist: '', song: '' };
-      result[p.id] = computeScoreForPlayer(ans, question.correctAnswer);
+
+      const artistOk = isArtistCorrect(ans.artist, question.correctAnswer.artist);
+      const songOk = isSongCorrect(ans.song, question.correctAnswer.song);
+      const score = computeScoreForPlayer(ans, question.correctAnswer);
+
+      result[p.id] = { score, artistOk, songOk };
     });
     return result;
   }, [players, answersByPlayer, question.correctAnswer]);
@@ -253,7 +187,7 @@ export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) 
           return (
             <View key={player.id}>
               <View style={styles.playerRow}>
-                <View style={styles.playerInfo}>
+                <View className="playerInfo" style={styles.playerInfo}>
                   {avatarSource ? (
                     <Image source={avatarSource} style={styles.avatarImage} />
                   ) : (
@@ -316,8 +250,7 @@ export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) 
     if (!player) return null;
 
     const avatarSource = getAvatarSource(player.avatarId);
-    const ans =
-      answersByPlayer?.[player.id] || { artist: '', song: '' };
+    const ans = answersByPlayer?.[player.id] || { artist: '', song: '' };
     const scoreInfo = scoresByPlayer[player.id];
 
     return (
