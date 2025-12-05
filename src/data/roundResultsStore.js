@@ -6,10 +6,16 @@ const results = {};
 /**
  * Appelé à chaque fin de question (depuis la route round).
  */
-export function saveQuestionResults(stageId, questionId, questionIndex, answersByPlayer) {
+export function saveQuestionResults(
+  stageId,
+  questionId,
+  questionIndex,
+  answersByPlayer
+) {
   if (!results[stageId]) {
     results[stageId] = {};
   }
+
   results[stageId][questionId] = {
     questionIndex,
     answersByPlayer,

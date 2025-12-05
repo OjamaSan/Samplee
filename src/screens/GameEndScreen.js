@@ -1,15 +1,15 @@
 // src/screens/GameEndScreen.js
 
-import { Button } from '@/src/components/Button';
-import { ScreenContainer } from '@/src/components/ScreenContainer';
-import { usePlayers } from '@/src/context/PlayersContext';
-import { AVATARS } from '@/src/data/avatars';
 import { QUESTIONS_BY_STAGE } from '@/src/data/questions';
 import { getAllResults } from '@/src/data/roundResultsStore';
-import { computeScoreForPlayer } from '@/src/lib/checkAnswer';
-import { theme } from '@/src/theme/theme';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button } from '../components/Button';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { usePlayers } from '../context/PlayersContext';
+import { AVATARS } from '../data/avatars';
+import { computeScoreForPlayer } from '../lib/checkAnswer';
+import { theme } from '../theme/theme';
 
 // avatar util
 function getAvatarSource(avatarId) {
@@ -60,7 +60,7 @@ export function GameEndScreen({ onBackToMenu }) {
     if (lastScore === null) {
       rank = 1;
     } else if (score === lastScore) {
-      rank = lastRank; // égalité
+      rank = lastRank;
     } else {
       rank = index + 1;
     }
@@ -77,7 +77,6 @@ export function GameEndScreen({ onBackToMenu }) {
 
   const topThree = orderedPlayersWithRank.slice(0, 3);
 
-  // phrase de titre avec gestion des égalités
   let titleLabel = 'Game results';
   if (winnersForTitle.length === 1) {
     titleLabel = `${winnersForTitle[0].name} wins the game !`;
@@ -98,7 +97,7 @@ export function GameEndScreen({ onBackToMenu }) {
             resizeMode="contain"
           />
 
-          {/* 2e place (à gauche) */}
+          {/* 2e place */}
           {topThree[1] && (
             <View style={[styles.podiumSlot, styles.podiumSlotSecond]}>
               <View style={styles.podiumAvatarWrapper}>
@@ -117,7 +116,7 @@ export function GameEndScreen({ onBackToMenu }) {
             </View>
           )}
 
-          {/* 1re place (au centre) */}
+          {/* 1re place */}
           {topThree[0] && (
             <View style={[styles.podiumSlot, styles.podiumSlotFirst]}>
               <View style={styles.podiumAvatarWrapper}>
@@ -136,7 +135,7 @@ export function GameEndScreen({ onBackToMenu }) {
             </View>
           )}
 
-          {/* 3e place (à droite) */}
+          {/* 3e place */}
           {topThree[2] && (
             <View style={[styles.podiumSlot, styles.podiumSlotThird]}>
               <View style={styles.podiumAvatarWrapper}>
@@ -162,7 +161,7 @@ export function GameEndScreen({ onBackToMenu }) {
         {titleLabel}
       </Text>
 
-      {/* Liste joueurs (scrollable) */}
+      {/* Liste joueurs */}
       <View style={styles.card}>
         <ScrollView
           style={styles.scroll}

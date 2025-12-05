@@ -1,17 +1,17 @@
 // src/screens/StageScoreScreen.js
 
-import { Button } from '@/src/components/Button';
-import { ScreenContainer } from '@/src/components/ScreenContainer';
-import { usePlayers } from '@/src/context/PlayersContext';
-import { AVATARS } from '@/src/data/avatars';
 import { QUESTIONS_BY_STAGE } from '@/src/data/questions';
 import { getStageResults } from '@/src/data/roundResultsStore';
-import { STAGES } from '@/src/data/stages';
-import { computeScoreForPlayer } from '@/src/lib/checkAnswer';
-import { getStageTheme } from '@/src/theme/stageTheme';
-import { theme } from '@/src/theme/theme';
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { Button } from '../components/Button';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { usePlayers } from '../context/PlayersContext';
+import { AVATARS } from '../data/avatars';
+import { STAGES } from '../data/stages';
+import { computeScoreForPlayer } from '../lib/checkAnswer';
+import { getStageTheme } from '../theme/stageTheme';
+import { theme } from '../theme/theme';
 
 // ------- utils avatar -------
 
@@ -38,7 +38,6 @@ export function StageScoreScreen({ stageId, onNextStage, onEndGame }) {
   const stageTheme = getStageTheme(stageId);
   const tone = stageTheme.family;
 
-  // Recalcul à chaque rendu
   const questions = QUESTIONS_BY_STAGE[stageId] || [];
   const stageResults = getStageResults(stageId);
 

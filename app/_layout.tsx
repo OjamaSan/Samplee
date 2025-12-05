@@ -1,7 +1,10 @@
-import React from 'react';
-import { Stack } from 'expo-router';
+// app/_layout.tsx
+
+import { PlayersProvider } from '@/src/context/PlayersContext';
 import { useFonts } from 'expo-font';
-import { View, ActivityIndicator } from 'react-native';
+import { Stack } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -24,5 +27,9 @@ export default function RootLayout() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <PlayersProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </PlayersProvider>
+  );
 }

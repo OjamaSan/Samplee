@@ -1,19 +1,15 @@
 // src/screens/CorrectionQuestionScreen.js
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Audio } from 'expo-av';
-import { ScreenContainer } from '@/src/components/ScreenContainer';
-import { Button } from '@/src/components/Button';
-import { theme } from '@/src/theme/theme';
-import { usePlayers } from '@/src/context/PlayersContext';
-import { AVATARS } from '@/src/data/avatars';
-import { getStageTheme } from '@/src/theme/stageTheme';
-import {
-  computeScoreForPlayer,
-  isArtistCorrect,
-  isSongCorrect,
-} from '@/src/lib/checkAnswer';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Button } from '../components/Button';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { usePlayers } from '../context/PlayersContext';
+import { AVATARS } from '../data/avatars';
+import { computeScoreForPlayer } from '../lib/checkAnswer';
+import { getStageTheme } from '../theme/stageTheme';
+import { theme } from '../theme/theme';
 
 // ---------- utils avatars ----------
 function getAvatarSource(avatarId) {
@@ -32,7 +28,11 @@ function getAvatarSource(avatarId) {
  *  - answersByPlayer: { [playerId]: { artist: string, song: string } }
  *  - onNext: () => void
  */
-export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) {
+export function CorrectionQuestionScreen({
+  question,
+  answersByPlayer,
+  onNext,
+}) {
   const { players } = usePlayers();
 
   // thème du stage
@@ -57,17 +57,23 @@ export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) 
     ? question.answerCoverSource
     : question.coverSource;
 
-  // scores + détail (artistOk / songOk) par joueur
   const scoresByPlayer = useMemo(() => {
     const result = {};
     players.forEach((p) => {
       const ans = answersByPlayer?.[p.id] || { artist: '', song: '' };
-
-      const artistOk = isArtistCorrect(ans.artist, question.correctAnswer.artist);
-      const songOk = isSongCorrect(ans.song, question.correctAnswer.song);
       const score = computeScoreForPlayer(ans, question.correctAnswer);
+      const artistOk = !!ans.artist &&
+        computeScoreForPlayer({ artist: ans.artist, song: '' }, question.correctAnswer) >
+          0;
+      const songOk = !!ans.song &&
+        computeScoreForPlayer({ artist: '', song: ans.song }, question.correctAnswer) >
+          0;
 
-      result[p.id] = { score, artistOk, songOk };
+      result[p.id] = {
+        score,
+        artistOk,
+        songOk,
+      };
     });
     return result;
   }, [players, answersByPlayer, question.correctAnswer]);
@@ -85,7 +91,6 @@ export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) 
           if (!isMounted) return;
           if (status.didJustFinish) {
             setIsPlaying(false);
-            // on ne reset pas le reveal, on laisse tout affiché
           }
         }
       );
@@ -100,7 +105,6 @@ export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) 
     setActivePlayerId(null);
     clearAllTimers();
 
-    // nettoyer ancien son
     if (soundRef.current) {
       soundRef.current.unloadAsync();
       soundRef.current = null;
@@ -148,19 +152,16 @@ export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) 
     const status = await sound.getStatusAsync();
 
     if (status.isLoaded && status.isPlaying) {
-      // stop
       await sound.stopAsync();
       setIsPlaying(false);
       clearAllTimers();
       return;
     }
 
-    // (Re)lecture
     await sound.setPositionAsync(0);
     await sound.playAsync();
     setIsPlaying(true);
 
-    // Pour la première lecture : on lance l'animation
     if (!hasPlayedOnce) {
       scheduleCorrectionSteps();
       setHasPlayedOnce(true);
@@ -187,7 +188,7 @@ export function CorrectionQuestionScreen({ question, answersByPlayer, onNext }) 
           return (
             <View key={player.id}>
               <View style={styles.playerRow}>
-                <View className="playerInfo" style={styles.playerInfo}>
+                <View style={styles.playerInfo}>
                   {avatarSource ? (
                     <Image source={avatarSource} style={styles.avatarImage} />
                   ) : (

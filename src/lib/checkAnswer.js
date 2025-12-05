@@ -16,9 +16,7 @@ function levenshtein(a, b) {
   if (m === 0) return n;
   if (n === 0) return m;
 
-  const dp = Array.from({ length: m + 1 }, () =>
-    new Array(n + 1).fill(0)
-  );
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
 
   for (let i = 0; i <= m; i++) dp[i][0] = i;
   for (let j = 0; j <= n; j++) dp[0][j] = j;
@@ -44,7 +42,6 @@ function isCloseMatch(user, expected, maxRatio = 0.35) {
 
   const dist = levenshtein(a, b);
   const maxLen = Math.max(a.length, b.length);
-
   return dist <= Math.ceil(maxLen * maxRatio);
 }
 
@@ -58,9 +55,7 @@ function isArtistCorrect(userArtist, correctArtist) {
 
   const candidates = [normalized, ...parts];
 
-  return candidates.some((candidate) =>
-    isCloseMatch(userArtist, candidate)
-  );
+  return candidates.some((candidate) => isCloseMatch(userArtist, candidate));
 }
 
 function isSongCorrect(userSong, correctSong) {
@@ -79,10 +74,6 @@ function computeScoreForPlayer(ans, correct) {
 }
 
 export {
-  normalize,
-  levenshtein,
-  isCloseMatch,
-  isArtistCorrect,
-  isSongCorrect,
-  computeScoreForPlayer,
+  computeScoreForPlayer, isArtistCorrect, isCloseMatch, isSongCorrect, levenshtein, normalize
 };
+
