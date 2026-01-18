@@ -10,7 +10,7 @@ export const RAP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RAP01/RAP01_Q01_sample.mp3'),
     correctAnswer: {
       artist: 'Dr Dre ft. Snoop Dogg',
-      song: 'The Next Episode (2000)',
+      song: 'The Next Episode',
     },
     answerTitle: 'Dr Dre ft. Snoop Dogg – The Next Episode (2000)',
     answerCoverSource: require('../../../assets/images/covers/RAP01/RAP01_Q01_answer_cover.jpg'),
@@ -30,7 +30,7 @@ export const RAP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RAP01/RAP01_Q02_sample.mp3'),
     correctAnswer: {
       artist: 'Kendrick Lamar',
-      song: 'Not Like Us (2024)',
+      song: 'Not Like Us',
     },
     answerTitle: 'Kendrick Lamar – Not Like Us (2024)',
     answerCoverSource: require('../../../assets/images/covers/RAP01/RAP01_Q02_answer_cover.jpg'),
@@ -50,7 +50,7 @@ export const RAP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RAP01/RAP01_Q03_sample.mp3'),
     correctAnswer: {
       artist: 'Future',
-      song: 'Mask Off (2017)',
+      song: 'Mask Off',
     },
     answerTitle: 'Future – Mask Off (2017)',
     answerCoverSource: require('../../../assets/images/covers/RAP01/RAP01_Q03_answer_cover.jpg'),
@@ -70,7 +70,7 @@ export const RAP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RAP01/RAP01_Q04_sample.mp3'),
     correctAnswer: {
       artist: 'Eminem',
-      song: 'My Name Is… (1999)',
+      song: 'My Name Is…',
     },
     answerTitle: 'Eminem – My Name Is… (1999)',
     answerCoverSource: require('../../../assets/images/covers/RAP01/RAP01_Q04_answer_cover.jpg'),
@@ -88,8 +88,14 @@ export const RAP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RAP01/RAP01_Q05_sample.mp3'),
     correctAnswer: {
       artist: 'MC Hammer',
-      song: "Can't Touch This (1990)",
+      song: "Can't Touch This",
     },
+    acceptedAnswers: [
+    {
+      artist: 'Nicki Minaj',
+      song: 'Super freaky girl',
+    },
+  ],
     answerTitle: "MC Hammer – Can't Touch This (1990)",
     answerCoverSource: require('../../../assets/images/covers/RAP01/RAP01_Q05_answer_cover.jpg'),
     correctionAudioSource: require('../../../assets/audio/RAP01/RAP01_Q05_correction.mp3'),

@@ -1,5 +1,10 @@
 // src/screens/CorrectionQuestionScreen.js
 
+import {
+  computeScoreForPlayer,
+  isArtistCorrect,
+  isSongCorrect,
+} from '@/src/lib/checkAnswer';
 import { Audio } from 'expo-av';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -7,7 +12,6 @@ import { Button } from '../components/Button';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { usePlayers } from '../context/PlayersContext';
 import { AVATARS } from '../data/avatars';
-import { computeScoreForPlayer } from '../lib/checkAnswer';
 import { getStageTheme } from '../theme/stageTheme';
 import { theme } from '../theme/theme';
 
@@ -58,25 +62,47 @@ export function CorrectionQuestionScreen({
     : question.coverSource;
 
   const scoresByPlayer = useMemo(() => {
-    const result = {};
-    players.forEach((p) => {
-      const ans = answersByPlayer?.[p.id] || { artist: '', song: '' };
-      const score = computeScoreForPlayer(ans, question.correctAnswer);
-      const artistOk = !!ans.artist &&
-        computeScoreForPlayer({ artist: ans.artist, song: '' }, question.correctAnswer) >
-          0;
-      const songOk = !!ans.song &&
-        computeScoreForPlayer({ artist: '', song: ans.song }, question.correctAnswer) >
-          0;
+  const result = {};
 
-      result[p.id] = {
-        score,
-        artistOk,
-        songOk,
-      };
-    });
-    return result;
-  }, [players, answersByPlayer, question.correctAnswer]);
+  // toutes les réponses acceptées pour la question
+  const possibleAnswers = [
+    question.correctAnswer,
+    ...(question.acceptedAnswers || []),
+  ];
+
+  players.forEach((p) => {
+    const ans = answersByPlayer?.[p.id] || {
+      artist: '',
+      song: '',
+    };
+
+    // score total
+    const score = computeScoreForPlayer(ans, question);
+
+    // artist OK si l'artiste match au moins UNE réponse acceptée
+    const artistOk =
+      !!ans.artist &&
+      possibleAnswers.some((a) =>
+        isArtistCorrect(ans.artist, a.artist)
+      );
+
+    // song OK si la chanson match au moins UNE réponse acceptée
+    const songOk =
+      !!ans.song &&
+      possibleAnswers.some((a) =>
+        isSongCorrect(ans.song, a.song)
+      );
+
+    result[p.id] = {
+      score,
+      artistOk,
+      songOk,
+    };
+  });
+
+  return result;
+}, [players, answersByPlayer, question]);
+
 
   // charge / libère le son de correction
   useEffect(() => {

@@ -10,7 +10,7 @@ export const HS01_QUESTIONS = [
     audioSource: require('../../../assets/audio/HS01/HS01_Q01_sample.mp3'),
     correctAnswer: {
       artist: 'Stardust',
-      song: 'Music Sounds Better With You (1998)',
+      song: 'Music Sounds Better With You',
     },
     answerTitle: 'Stardust – Music Sounds Better With You (1998)',
     answerCoverSource: require('../../../assets/images/covers/HS01/HS01_Q01_answer_cover.jpg'),
@@ -31,7 +31,7 @@ export const HS01_QUESTIONS = [
     audioSource: require('../../../assets/audio/HS01/HS01_Q02_sample.mp3'),
     correctAnswer: {
       artist: 'Duck Sauce',
-      song: 'Barbra Streisand (2011)',
+      song: 'Barbra Streisand',
     },
     answerTitle: 'Duck Sauce – Barbra Streisand (2011)',
     answerCoverSource: require('../../../assets/images/covers/HS01/HS01_Q02_answer_cover.jpg'),
@@ -50,7 +50,7 @@ export const HS01_QUESTIONS = [
     audioSource: require('../../../assets/audio/HS01/HS01_Q03_sample.mp3'),
     correctAnswer: {
       artist: 'Daft Punk',
-      song: 'Harder Better Faster Stronger (2001)',
+      song: 'Harder Better Faster Stronger',
     },
     answerTitle: 'Daft Punk – Harder Better Faster Stronger (2001)',
     answerCoverSource: require('../../../assets/images/covers/HS01/HS01_Q03_answer_cover.jpg'),
@@ -70,7 +70,7 @@ export const HS01_QUESTIONS = [
     audioSource: require('../../../assets/audio/HS01/HS01_Q04_sample.mp3'),
     correctAnswer: {
       artist: 'Modjo',
-      song: 'Lady (2000)',
+      song: 'Lady',
     },
     answerTitle: 'Modjo – Lady (2000)',
     answerCoverSource: require('../../../assets/images/covers/HS01/HS01_Q04_answer_cover.jpg'),
@@ -92,7 +92,7 @@ export const HS01_QUESTIONS = [
       artist: 'LF System',
       song: 'Afraid To Feel (2022)',
     },
-    answerTitle: 'LF System – Afraid To Feel (2022)',
+    answerTitle: 'LF System – Afraid To Feel',
     answerCoverSource: require('../../../assets/images/covers/HS01/HS01_Q05_answer_cover.jpg'),
     correctionAudioSource: require('../../../assets/audio/HS01/HS01_Q05_correction.mp3'),
     correctionSteps: [

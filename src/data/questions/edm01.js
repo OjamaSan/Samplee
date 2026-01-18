@@ -10,8 +10,14 @@ export const EDM01_QUESTIONS = [
     audioSource: require('../../../assets/audio/EDM01/EDM01_Q01_sample.mp3'),
     correctAnswer: {
       artist: 'Flo Rida',
-      song: 'Good Feeling (2011)',
+      song: 'Good Feeling',
     },
+    acceptedAnswers: [
+    {
+      artist: 'Avicii',
+      song: 'Levels',
+    },
+    ],
     answerTitle: 'Flo Rida – Good Feeling (2011)',
     answerCoverSource: require('../../../assets/images/covers/EDM01/EDM01_Q01_answer_cover.jpg'),
     correctionAudioSource: require('../../../assets/audio/EDM01/EDM01_Q01_correction.mp3'),
@@ -28,8 +34,8 @@ export const EDM01_QUESTIONS = [
     coverSource: require('../../../assets/images/covers/EDM01/EDM01_Q02_question_cover.jpg'),
     audioSource: require('../../../assets/audio/EDM01/EDM01_Q02_sample.mp3'),
     correctAnswer: {
-      artist: 'Pitbull ft. Ke$ha',
-      song: 'Timber (2013)',
+      artist: 'Pitbull ft. Kesha',
+      song: 'Timber',
     },
     answerTitle: 'Pitbull ft. Ke$ha – Timber (2013)',
     answerCoverSource: require('../../../assets/images/covers/EDM01/EDM01_Q02_answer_cover.jpg'),
@@ -49,7 +55,7 @@ export const EDM01_QUESTIONS = [
     audioSource: require('../../../assets/audio/EDM01/EDM01_Q03_sample.mp3'),
     correctAnswer: {
       artist: 'David Guetta ft. Ne-YO & Akon',
-      song: 'Play Hard (2011)',
+      song: 'Play Hard',
     },
     answerTitle: 'David Guetta ft. Ne-YO & Akon – Play Hard (2011)',
     answerCoverSource: require('../../../assets/images/covers/EDM01/EDM01_Q03_answer_cover.jpg'),
@@ -68,8 +74,14 @@ export const EDM01_QUESTIONS = [
     audioSource: require('../../../assets/audio/EDM01/EDM01_Q04_sample.mp3'),
     correctAnswer: {
       artist: 'Eric Prydz',
-      song: 'Call On Me (2004)',
+      song: 'Call On Me',
     },
+    acceptedAnswers: [
+    {
+      artist: 'Thomas Bangalter ft. DJ Falcon',
+      song: 'Call on me',
+    },
+    ],
     answerTitle: 'Eric Prydz – Call On Me (2004)',
     answerCoverSource: require('../../../assets/images/covers/EDM01/EDM01_Q04_answer_cover.jpg'),
     correctionAudioSource: require('../../../assets/audio/EDM01/EDM01_Q04_correction.mp3'),
@@ -89,7 +101,7 @@ export const EDM01_QUESTIONS = [
     audioSource: require('../../../assets/audio/EDM01/EDM01_Q05_sample.mp3'),
     correctAnswer: {
       artist: 'Pitbull',
-      song: 'I Know You Want Me (Calle Ocho) (2009)',
+      song: 'I Know You Want Me',
     },
     answerTitle: 'Pitbull – I Know You Want Me (Calle Ocho) (2009)',
     answerCoverSource: require('../../../assets/images/covers/EDM01/EDM01_Q05_answer_cover.jpg'),

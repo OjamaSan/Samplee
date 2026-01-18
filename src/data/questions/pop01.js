@@ -10,7 +10,7 @@ export const POP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/POP01/POP01_Q01_sample.mp3'),
     correctAnswer: {
       artist: 'Shakira ft. Wyclef Jean',
-      song: "Hips Don't Lie (2005)",
+      song: "Hips Don't Lie",
     },
     answerTitle: "Shakira ft. Wyclef Jean – Hips Don't Lie (2005)",
     answerCoverSource: require('../../../assets/images/covers/POP01/POP01_Q01_answer_cover.jpg'),
@@ -30,7 +30,7 @@ export const POP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/POP01/POP01_Q02_sample.mp3'),
     correctAnswer: {
       artist: 'Gotye ft. Kimbra',
-      song: 'Somebody That I Used To Know (2011)',
+      song: 'Somebody That I Used To Know',
     },
     answerTitle: 'Gotye ft. Kimbra – Somebody That I Used To Know (2011)',
     answerCoverSource: require('../../../assets/images/covers/POP01/POP01_Q02_answer_cover.jpg'),
@@ -50,7 +50,7 @@ export const POP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/POP01/POP01_Q03_sample.mp3'),
     correctAnswer: {
       artist: 'Britney Spears',
-      song: 'Toxic (2003)',
+      song: 'Toxic',
     },
     answerTitle: 'Britney Spears – Toxic (2003)',
     answerCoverSource: require('../../../assets/images/covers/POP01/POP01_Q03_answer_cover.jpg'),
@@ -70,7 +70,7 @@ export const POP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/POP01/POP01_Q04_sample.mp3'),
     correctAnswer: {
       artist: 'Gnarls Barkley',
-      song: 'Crazy (2006)',
+      song: 'Crazy',
     },
     answerTitle: 'Gnarls Barkley – Crazy (2006)',
     answerCoverSource: require('../../../assets/images/covers/POP01/POP01_Q04_answer_cover.jpg'),
@@ -89,7 +89,7 @@ export const POP01_QUESTIONS = [
     audioSource: require('../../../assets/audio/POP01/POP01_Q05_sample.mp3'),
     correctAnswer: {
       artist: 'The Verve',
-      song: 'Bitter Sweet Symphony (1997)',
+      song: 'Bitter Sweet Symphony',
     },
     answerTitle: 'The Verve – Bitter Sweet Symphony (1997)',
     answerCoverSource: require('../../../assets/images/covers/POP01/POP01_Q05_answer_cover.jpg'),

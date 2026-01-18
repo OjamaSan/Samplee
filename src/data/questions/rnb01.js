@@ -10,7 +10,7 @@ export const RNB01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RnB01/RnB01_Q01_sample.mp3'),
     correctAnswer: {
       artist: 'Beyonce ft. JAY-Z',
-      song: 'Crazy In Love (2003)',
+      song: 'Crazy In Love',
     },
     answerTitle: 'Beyonce ft. JAY-Z – Crazy In Love (2003)',
     answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q01_answer_cover.jpg'),
@@ -29,8 +29,8 @@ export const RNB01_QUESTIONS = [
     coverSource: require('../../../assets/images/covers/RnB01/RnB01_Q02_question_cover.jpg'),
     audioSource: require('../../../assets/audio/RnB01/RnB01_Q02_sample.mp3'),
     correctAnswer: {
-      artist: 'DJ Khaled ft. Rihanna, Bryson Tiller',
-      song: 'Wild Thoughts (2017)',
+      artist: 'DJ Khaled ft. Rihanna & Bryson Tiller',
+      song: 'Wild Thoughts',
     },
     answerTitle: 'DJ Khaled ft. Rihanna, Bryson Tiller – Wild Thoughts (2017)',
     answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q02_answer_cover.jpg'),
@@ -49,7 +49,7 @@ export const RNB01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RnB01/RnB01_Q03_sample.mp3'),
     correctAnswer: {
       artist: 'Jay-Z ft. Alicia Keys',
-      song: 'Empire State of Mind (2009)',
+      song: 'Empire State of Mind',
     },
     answerTitle: 'Jay-Z ft. Alicia Keys – Empire State of Mind (2009)',
     answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q03_answer_cover.jpg'),
@@ -69,7 +69,7 @@ export const RNB01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RnB01/RnB01_Q04_sample.mp3'),
     correctAnswer: {
       artist: 'Estelle ft. Kanye West',
-      song: 'American Boy (2008)',
+      song: 'American Boy',
     },
     answerTitle: 'Estelle ft. Kanye West – American Boy (2008)',
     answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q04_answer_cover.jpg'),
@@ -88,7 +88,7 @@ export const RNB01_QUESTIONS = [
     audioSource: require('../../../assets/audio/RnB01/RnB01_Q05_sample.mp3'),
     correctAnswer: {
       artist: 'Jason Derulo ft. 2 Chainz',
-      song: 'Talk Dirty (2013)',
+      song: 'Talk Dirty',
     },
     answerTitle: 'Jason Derulo ft. 2 Chainz – Talk Dirty (2013)',
     answerCoverSource: require('../../../assets/images/covers/RnB01/RnB01_Q05_answer_cover.jpg'),
