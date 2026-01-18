@@ -2,13 +2,15 @@
 
 import { QUESTIONS_BY_STAGE } from '@/src/data/questions';
 import { getAllResults } from '@/src/data/roundResultsStore';
+import {
+  computeScoreForPlayer
+} from '@/src/lib/checkAnswer';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { usePlayers } from '../context/PlayersContext';
 import { AVATARS } from '../data/avatars';
-import { computeScoreForPlayer } from '../lib/checkAnswer';
 import { theme } from '../theme/theme';
 
 // avatar util
@@ -41,7 +43,7 @@ export function GameEndScreen({ onBackToMenu }) {
       if (!res) return;
       players.forEach((p) => {
         const ans = res.answersByPlayer?.[p.id];
-        const score = computeScoreForPlayer(ans, q.correctAnswer);
+        const score = computeScoreForPlayer(ans, q);
         scores[p.id] += score;
       });
     });
@@ -204,7 +206,7 @@ export function GameEndScreen({ onBackToMenu }) {
       {/* Bouton retour menu */}
       <View style={styles.footer}>
         <Button
-          variant="solid"
+          variant="light"
           tone="rouge"
           size="lg"
           title="Back to menu"
@@ -219,7 +221,7 @@ export default GameEndScreen;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.turquoise[500],
+    backgroundColor: theme.colors.rouge[500],
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 24,
@@ -227,7 +229,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   podiumCard: {
-    backgroundColor: theme.colors.turquoise[100],
+    backgroundColor: theme.colors.rouge[100],
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
   },
   podiumName: {
     ...theme.typography.bodySm,
-    color: theme.colors.turquoise[700],
+    color: theme.colors.rouge[700],
     maxWidth: 80,
     textAlign: 'center',
   },
@@ -295,7 +297,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   card: {
-    backgroundColor: theme.colors.turquoise[100],
+    backgroundColor: theme.colors.rouge[100],
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
   },
   rankText: {
     ...theme.typography.bodyMd,
-    color: theme.colors.turquoise[700],
+    color: theme.colors.rouge[700],
     width: 24,
     textAlign: 'left',
     marginRight: 4,
@@ -339,23 +341,23 @@ const styles = StyleSheet.create({
   },
   playerName: {
     ...theme.typography.bodyMd,
-    color: theme.colors.turquoise[700],
+    color: theme.colors.rouge[700],
   },
   scoreBadge: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.turquoise[700],
+    backgroundColor: theme.colors.rouge[700],
     alignItems: 'center',
     justifyContent: 'center',
   },
   scoreText: {
     ...theme.typography.bodyMd,
-    color: theme.colors.turquoise[100],
+    color: theme.colors.rouge[100],
   },
   separator: {
     height: 2,
-    backgroundColor: theme.colors.turquoise[300],
+    backgroundColor: theme.colors.rouge[300],
     marginVertical: 8,
   },
   footer: {

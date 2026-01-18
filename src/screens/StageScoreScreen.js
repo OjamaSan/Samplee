@@ -2,6 +2,9 @@
 
 import { QUESTIONS_BY_STAGE } from '@/src/data/questions';
 import { getStageResults } from '@/src/data/roundResultsStore';
+import {
+  computeScoreForPlayer
+} from '@/src/lib/checkAnswer';
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
@@ -9,7 +12,6 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { usePlayers } from '../context/PlayersContext';
 import { AVATARS } from '../data/avatars';
 import { STAGES } from '../data/stages';
-import { computeScoreForPlayer } from '../lib/checkAnswer';
 import { getStageTheme } from '../theme/stageTheme';
 import { theme } from '../theme/theme';
 
@@ -51,7 +53,7 @@ export function StageScoreScreen({ stageId, onNextStage, onEndGame }) {
     if (!res) return;
     players.forEach((p) => {
       const ans = res.answersByPlayer?.[p.id];
-      const score = computeScoreForPlayer(ans, q.correctAnswer);
+      const score = computeScoreForPlayer(ans, q);
       scores[p.id] += score;
     });
   });
