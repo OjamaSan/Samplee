@@ -1,4 +1,4 @@
-// app/(tabs)/correction/[stageId]/[questionIndex].tsx
+// app/correction/[stageId]/[questionIndex].tsx
 
 import React from 'react';
 import { Text } from 'react-native';
@@ -51,7 +51,7 @@ export default function CorrectionRoute() {
 
   const handleNext = () => {
     if (!isLast) {
-      router.push({
+      router.replace({
         pathname: '/correction/[stageId]/[questionIndex]',
         params: {
           stageId: rawStageId,
@@ -60,7 +60,7 @@ export default function CorrectionRoute() {
       });
     } else {
       // dernière correction → écran des scores du stage
-      router.push({
+      router.replace({
         pathname: '/stage-score/[stageId]',
         params: { stageId: rawStageId },
       });
@@ -69,6 +69,7 @@ export default function CorrectionRoute() {
 
   return (
     <CorrectionQuestionScreen
+      key={question.id}
       question={question}
       answersByPlayer={answersByPlayer}
       onNext={handleNext}

@@ -1,12 +1,8 @@
 // src/screens/CorrectionQuestionScreen.js
 
-import {
-  computeScoreForPlayer,
-  isArtistCorrect,
-  isSongCorrect,
-} from '@/src/lib/checkAnswer';
-import { Audio } from 'expo-av';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getAnswerResult } from '@/src/lib/checkAnswer';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from '../components/Button';
 import { ScreenContainer } from '../components/ScreenContainer';
@@ -43,16 +39,36 @@ export function CorrectionQuestionScreen({
   const stageTheme = getStageTheme(question.stageId);
   const tone = stageTheme.family;
 
-  // audio + animation reveal
-  const [isPlaying, setIsPlaying] = useState(false);
+  // audio de correction
+  const audio = useAudioPlayer(question.correctionAudioSource ?? null);
+  const status = useAudioPlayerStatus(audio);
+  const isPlaying = status.playing;
+
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [hasRevealed, setHasRevealed] = useState(false);
   const [infoText, setInfoText] = useState('');
-  const soundRef = useRef(null);
-  const timeoutsRef = useRef([]);
 
   // mode liste / détail joueur
   const [activePlayerId, setActivePlayerId] = useState(null);
+
+  // Les étapes (bpm / pitch / reveal) suivent la position réelle de l'audio :
+  // si on coupe puis relance, elles se rejouent au bon moment, et le reveal
+  // ne peut plus être "perdu" en arrêtant l'audio trop tôt.
+  const steps = question.correctionSteps;
+  useEffect(() => {
+    if (!steps?.length) return;
+    if (!status.playing && !status.didJustFinish) return;
+
+    const t = status.currentTime;
+    const reached = steps.filter((s) => s.at <= t);
+
+    const lastText = [...reached].reverse().find((s) => s.text);
+    setInfoText(lastText?.text ?? '');
+
+    if (reached.some((s) => s.reveal) || status.didJustFinish) {
+      setHasRevealed(true);
+    }
+  }, [status.currentTime, status.playing, status.didJustFinish, steps]);
 
   // titre + cover affichés (sample ou réponse selon reveal)
   const isRevealed = hasRevealed;
@@ -61,140 +77,34 @@ export function CorrectionQuestionScreen({
     ? question.answerCoverSource
     : question.coverSource;
 
+  // score + détail artiste/titre, calculés sur la même réponse acceptée
   const scoresByPlayer = useMemo(() => {
-  const result = {};
-
-  // toutes les réponses acceptées pour la question
-  const possibleAnswers = [
-    question.correctAnswer,
-    ...(question.acceptedAnswers || []),
-  ];
-
-  players.forEach((p) => {
-    const ans = answersByPlayer?.[p.id] || {
-      artist: '',
-      song: '',
-    };
-
-    // score total
-    const score = computeScoreForPlayer(ans, question);
-
-    // artist OK si l'artiste match au moins UNE réponse acceptée
-    const artistOk =
-      !!ans.artist &&
-      possibleAnswers.some((a) =>
-        isArtistCorrect(ans.artist, a.artist)
-      );
-
-    // song OK si la chanson match au moins UNE réponse acceptée
-    const songOk =
-      !!ans.song &&
-      possibleAnswers.some((a) =>
-        isSongCorrect(ans.song, a.song)
-      );
-
-    result[p.id] = {
-      score,
-      artistOk,
-      songOk,
-    };
-  });
-
-  return result;
-}, [players, answersByPlayer, question]);
-
-
-  // charge / libère le son de correction
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadSound() {
-      if (!question?.correctionAudioSource) return;
-      const { sound } = await Audio.Sound.createAsync(
-        question.correctionAudioSource,
-        { shouldPlay: false },
-        async (status) => {
-          if (!isMounted) return;
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-          }
-        }
-      );
-      soundRef.current = sound;
-    }
-
-    // reset états quand la question change
-    setIsPlaying(false);
-    setHasPlayedOnce(false);
-    setHasRevealed(false);
-    setInfoText('');
-    setActivePlayerId(null);
-    clearAllTimers();
-
-    if (soundRef.current) {
-      soundRef.current.unloadAsync();
-      soundRef.current = null;
-    }
-
-    loadSound();
-
-    return () => {
-      isMounted = false;
-      clearAllTimers();
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-    };
-  }, [question?.id]);
-
-  const clearAllTimers = () => {
-    timeoutsRef.current.forEach((id) => clearTimeout(id));
-    timeoutsRef.current = [];
-  };
-
-  const scheduleCorrectionSteps = () => {
-    clearAllTimers();
-    if (!question.correctionSteps || question.correctionSteps.length === 0)
-      return;
-
-    question.correctionSteps.forEach((step) => {
-      const timeoutId = setTimeout(() => {
-        if (step.text) {
-          setInfoText(step.text);
-        }
-        if (step.reveal) {
-          setHasRevealed(true);
-        }
-      }, step.at * 1000);
-      timeoutsRef.current.push(timeoutId);
+    const result = {};
+    players.forEach((p) => {
+      const ans = answersByPlayer?.[p.id] || { artist: '', song: '' };
+      result[p.id] = getAnswerResult(ans, question);
     });
-  };
+    return result;
+  }, [players, answersByPlayer, question]);
 
-  const handleRevealOrListen = async () => {
-    const sound = soundRef.current;
-    if (!sound) return;
+  const handleRevealOrListen = () => {
+    if (!status.isLoaded) return;
 
-    const status = await sound.getStatusAsync();
-
-    if (status.isLoaded && status.isPlaying) {
-      await sound.stopAsync();
-      setIsPlaying(false);
-      clearAllTimers();
+    if (status.playing) {
+      audio.pause();
       return;
     }
 
-    await sound.setPositionAsync(0);
-    await sound.playAsync();
-    setIsPlaying(true);
-
-    if (!hasPlayedOnce) {
-      scheduleCorrectionSteps();
-      setHasPlayedOnce(true);
-    }
+    audio.seekTo(0);
+    audio.play();
+    setHasPlayedOnce(true);
   };
 
-  const buttonLabel = hasPlayedOnce ? 'Listen again' : 'Reveal answer';
+  const buttonLabel = isPlaying
+    ? 'Stop'
+    : hasPlayedOnce
+      ? 'Listen again'
+      : 'Reveal answer';
 
   // ----- rendu liste joueurs -----
 

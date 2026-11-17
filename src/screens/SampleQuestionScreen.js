@@ -1,6 +1,6 @@
 // src/screens/SampleQuestionScreen.js
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Image,
   TextInput,
 } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { Button } from '@/src/components/Button';
 import { theme } from '@/src/theme/theme';
@@ -42,64 +42,20 @@ export function SampleQuestionScreen({ question, onNext }) {
   const tone = stageTheme.family; // 'turquoise', 'blue', etc.
 
   // ------- AUDIO : play / stop / replay -------
-  const [isPlaying, setIsPlaying] = useState(false);
-  const soundRef = useRef(null);
+  // Le player est créé / libéré automatiquement avec l'écran (expo-audio).
+  const audio = useAudioPlayer(question.audioSource ?? null);
+  const status = useAudioPlayerStatus(audio);
+  const isPlaying = status.playing;
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadSound() {
-      if (!question?.audioSource) return;
-      const { sound } = await Audio.Sound.createAsync(
-        question.audioSource,
-        { shouldPlay: false },
-        (status) => {
-          if (!isMounted) return;
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-            sound.setPositionAsync(0);
-          }
-        }
-      );
-      soundRef.current = sound;
-    }
-
-    // reset état "playing" quand la question change
-    setIsPlaying(false);
-
-    // nettoyer l’ancien son
-    if (soundRef.current) {
-      soundRef.current.unloadAsync();
-      soundRef.current = null;
-    }
-
-    loadSound();
-
-    return () => {
-      isMounted = false;
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-    };
-  }, [question]);
-
-  const handlePlaySample = async () => {
-    const sound = soundRef.current;
-    if (!sound) return;
-
-    const status = await sound.getStatusAsync();
-
-    if (status.isLoaded && status.isPlaying) {
-      // Si ça joue déjà → stop et reset
-      await sound.stopAsync();
-      await sound.setPositionAsync(0);
-      setIsPlaying(false);
+  const handlePlaySample = () => {
+    if (!status.isLoaded) return;
+    if (status.playing) {
+      // Si ça joue déjà → stop
+      audio.pause();
     } else {
       // Relance depuis le début
-      await sound.setPositionAsync(0);
-      await sound.playAsync();
-      setIsPlaying(true);
+      audio.seekTo(0);
+      audio.play();
     }
   };
 
@@ -110,6 +66,16 @@ export function SampleQuestionScreen({ question, onNext }) {
 
   // Joueur actuellement en mode "input"
   const [activePlayerId, setActivePlayerId] = useState(null);
+
+  // Brouillon de la saisie en cours : n'est validé qu'au Submit,
+  // ce qui permet d'annuler sans écraser une réponse déjà donnée.
+  const [draft, setDraft] = useState({ artist: '', song: '' });
+
+  const openPlayerInput = (playerId) => {
+    const current = answersByPlayer[playerId];
+    setDraft({ artist: current?.artist ?? '', song: current?.song ?? '' });
+    setActivePlayerId(playerId);
+  };
 
   // À chaque changement de question, on :
   // - remet activePlayerId à null (retour en mode liste)
@@ -135,22 +101,25 @@ export function SampleQuestionScreen({ question, onNext }) {
     [players, answersByPlayer]
   );
 
-  const handleSubmitAnswer = (playerId) => {
-    const answer = answersByPlayer[playerId];
-    if (!answer.artist.trim() || !answer.song.trim()) {
-      // On n'autorise pas submit si un des champs est vide
-      return;
-    }
-
+  const commitAnswer = (playerId, artist, song) => {
     setAnswersByPlayer((prev) => ({
       ...prev,
-      [playerId]: {
-        ...prev[playerId],
-        hasSubmitted: true,
-      },
+      [playerId]: { artist, song, hasSubmitted: true },
     }));
-
     setActivePlayerId(null);
+  };
+
+  const handleSubmitAnswer = (playerId) => {
+    const artist = draft.artist.trim();
+    const song = draft.song.trim();
+    // Au moins un des deux champs : on peut connaître l'artiste sans le titre
+    if (!artist && !song) return;
+    commitAnswer(playerId, artist, song);
+  };
+
+  // "I don't know" : réponse vide, 0 point, mais le joueur est compté comme ayant répondu
+  const handleSkipAnswer = (playerId) => {
+    commitAnswer(playerId, '', '');
   };
 
   const handleNextQuestion = () => {
@@ -200,7 +169,7 @@ export function SampleQuestionScreen({ question, onNext }) {
                     tone={tone}
                     size="sm"
                     title={hasAnswer ? 'Change' : 'Answer'}
-                    onPress={() => setActivePlayerId(player.id)}
+                    onPress={() => openPlayerInput(player.id)}
                   />
                 </View>
               </View>
@@ -228,13 +197,7 @@ export function SampleQuestionScreen({ question, onNext }) {
     const answerState = answersByPlayer[player.id];
 
     const updateField = (field, value) => {
-      setAnswersByPlayer((prev) => ({
-        ...prev,
-        [player.id]: {
-          ...prev[player.id],
-          [field]: value,
-        },
-      }));
+      setDraft((prev) => ({ ...prev, [field]: value }));
     };
 
     return (
@@ -272,10 +235,10 @@ export function SampleQuestionScreen({ question, onNext }) {
             ]}
             placeholder="Artist name"
             placeholderTextColor={stageTheme.palette[700]}
-            value={answerState.artist}
+            value={draft.artist}
             onChangeText={(text) => updateField('artist', text)}
             // on masque le texte s'il a déjà soumis une réponse
-            secureTextEntry={answerState.hasSubmitted}
+            secureTextEntry={answerState?.hasSubmitted}
           />
           <TextInput
             style={[
@@ -288,19 +251,37 @@ export function SampleQuestionScreen({ question, onNext }) {
             ]}
             placeholder="Song name"
             placeholderTextColor={stageTheme.palette[700]}
-            value={answerState.song}
+            value={draft.song}
             onChangeText={(text) => updateField('song', text)}
-            secureTextEntry={answerState.hasSubmitted}
+            secureTextEntry={answerState?.hasSubmitted}
           />
         </View>
 
         <View style={styles.inputFooter}>
           <Button
+            variant="light"
+            tone={tone}
+            size="sm"
+            title="Cancel"
+            style={styles.inputFooterButton}
+            onPress={() => setActivePlayerId(null)}
+          />
+          <Button
+            variant="light"
+            tone={tone}
+            size="sm"
+            title="I don't know"
+            style={styles.inputFooterButton}
+            onPress={() => handleSkipAnswer(player.id)}
+          />
+          <Button
             variant="solid"
             tone={tone}
             size="sm"
             title="Submit"
+            style={styles.inputFooterButton}
             onPress={() => handleSubmitAnswer(player.id)}
+            disabled={!draft.artist.trim() && !draft.song.trim()}
           />
         </View>
       </View>
@@ -471,7 +452,11 @@ const styles = StyleSheet.create({
     ...theme.typography.bodyMd,
   },
   inputFooter: {
-    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inputFooterButton: {
+    flex: 1,
   },
   footer: {
     marginTop: 24,

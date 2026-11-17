@@ -90,7 +90,7 @@ export const HS01_QUESTIONS = [
     audioSource: require('../../../assets/audio/HS01/HS01_Q05_sample.mp3'),
     correctAnswer: {
       artist: 'LF System',
-      song: 'Afraid To Feel (2022)',
+      song: 'Afraid To Feel',
     },
     answerTitle: 'LF System – Afraid To Feel',
     answerCoverSource: require('../../../assets/images/covers/HS01/HS01_Q05_answer_cover.jpg'),

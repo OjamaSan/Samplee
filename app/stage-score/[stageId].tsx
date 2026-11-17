@@ -1,4 +1,4 @@
-// app/(tabs)/stage-score/[stageId].tsx
+// app/stage-score/[stageId].tsx
 
 import React from 'react';
 import { Text } from 'react-native';
@@ -19,12 +19,12 @@ export default function StageScoreRoute() {
     <StageScoreScreenAny
       stageId={stageId}
       onNextStage={() => {
-        // Retour à la sélection de stage
-        router.push('/stage-select');
+        // Retour à la sélection de stage (déjà présente dans la pile)
+        router.dismissTo('/stage-select');
       }}
       onEndGame={() => {
         // Aller à l'écran de fin de partie
-        router.push('/game-end');
+        router.replace('/game-end');
       }}
     />
   );

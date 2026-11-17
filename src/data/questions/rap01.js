@@ -65,7 +65,7 @@ export const RAP01_QUESTIONS = [
     id: 'RAP01_Q04',
     stageId: 'rap_1',
     order: 3,
-    title: 'Labi Siffre - I Got The… (2006)',
+    title: 'Labi Siffre - I Got The… (1975)',
     coverSource: require('../../../assets/images/covers/RAP01/RAP01_Q04_question_cover.jpg'),
     audioSource: require('../../../assets/audio/RAP01/RAP01_Q04_sample.mp3'),
     correctAnswer: {
