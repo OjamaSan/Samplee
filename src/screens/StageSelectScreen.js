@@ -1,6 +1,6 @@
 // src/screens/StageSelectScreen.js
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -28,52 +28,18 @@ function getAvatarSource(avatarId) {
 export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  if (!STAGES || STAGES.length === 0) {
-    return (
-      <ScreenContainer style={styles.container}>
-        <Text style={[theme.typography.headingLg, styles.title]}>
-          Select stage
-        </Text>
-        <Text style={styles.emptyText}>
-          No stages configured yet.
-        </Text>
-      </ScreenContainer>
-    );
-  }
-
-  const currentStage = useMemo(
-    () => STAGES[currentIndex],
-    [currentIndex]
-  );
-
-    const isPlayable =
-    typeof isStagePlayable === 'function'
-      ? isStagePlayable(currentStage.id)
-      : true;
-
-
-  const goToIndex = (index) => {
-    const lastIndex = STAGES.length - 1;
-    const target =
-      index < 0 ? lastIndex : index > lastIndex ? 0 : index;
-    setCurrentIndex(target);
+  // Avance / recule avec bouclage. On passe par la forme fonctionnelle de
+  // setState : le PanResponder (créé une seule fois) lit ainsi toujours
+  // l'index courant, et non celui du premier rendu.
+  const step = (delta) => {
+    setCurrentIndex((prev) => {
+      const count = STAGES.length;
+      return (prev + delta + count) % count;
+    });
   };
 
-  const handleNext = () => {
-    goToIndex(currentIndex + 1);
-  };
-
-  const handlePrev = () => {
-    goToIndex(currentIndex - 1);
-  };
-
-  const handlePlay = () => {
-    if (!isPlayable) return;
-    if (onPlay) {
-      onPlay(currentStage);
-    }
-  };
-
+  const handleNext = () => step(1);
+  const handlePrev = () => step(-1);
 
   // Swipe left/right sur la carte pour changer de stage
   const panResponder = useRef(
@@ -93,7 +59,34 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
     })
   ).current;
 
-  const avatarSources = (currentStage.avatarIds || [])
+  if (!STAGES || STAGES.length === 0) {
+    return (
+      <ScreenContainer style={styles.container}>
+        <Text style={[theme.typography.headingLg, styles.title]}>
+          Select stage
+        </Text>
+        <Text style={styles.emptyText}>
+          No stages configured yet.
+        </Text>
+      </ScreenContainer>
+    );
+  }
+
+  const currentStage = STAGES[currentIndex];
+
+  const isPlayable =
+    typeof isStagePlayable === 'function'
+      ? isStagePlayable(currentStage.id)
+      : true;
+
+  const handlePlay = () => {
+    if (!isPlayable) return;
+    if (onPlay) {
+      onPlay(currentStage);
+    }
+  };
+
+  const avatarSources =(currentStage.avatarIds || [])
     .map((id) => getAvatarSource(id))
     .filter(Boolean);
 

@@ -1,4 +1,4 @@
-// app/(tabs)/round/[stageId]/[questionIndex].tsx
+// app/round/[stageId]/[questionIndex].tsx
 
 import React from 'react';
 import { Text } from 'react-native';
@@ -52,8 +52,8 @@ export default function RoundRoute() {
     saveQuestionResults(rawStageId, result.questionId, index, result.answersByPlayer);
 
     if (!isLast) {
-      // question suivante
-      router.push({
+      // question suivante (replace : pas de retour vers une question déjà jouée)
+      router.replace({
         pathname: '/round/[stageId]/[questionIndex]',
         params: {
           stageId: rawStageId,
@@ -62,7 +62,7 @@ export default function RoundRoute() {
       });
     } else {
       // dernière question → fin de stage
-      router.push({
+      router.replace({
         pathname: '/stage-end/[stageId]',
         params: { stageId: rawStageId },
       });
@@ -71,6 +71,7 @@ export default function RoundRoute() {
 
   return (
     <SampleQuestionScreen
+      key={question.id}
       question={question}
       onNext={handleNext}
     />

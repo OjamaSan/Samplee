@@ -1,4 +1,4 @@
-// app/(tabs)/game-end.tsx
+// app/game-end.tsx
 
 import React from 'react';
 import { useRouter } from 'expo-router';
@@ -15,8 +15,8 @@ export default function GameEndRoute() {
       onBackToMenu={() => {
         // on reset les scores de la partie
         resetAllResults();
-        // retour au menu principal (Home)
-        router.push('/');
+        // retour au menu principal (Home) en vidant la pile de la partie
+        router.dismissTo('/');
       }}
     />
   );

@@ -91,7 +91,7 @@ export function PlayerSetupScreen({ onBack, onConfirm }) {
 
   const handleConfirm = () => {
     if (!isFormValid) return;
-    router.push('/(tabs)/stage-select');
+    router.push('/stage-select');
   };
 
   const renderPlayerItem = ({ item, index }) => {

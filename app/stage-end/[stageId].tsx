@@ -1,4 +1,4 @@
-// app/(tabs)/stage-end/[stageId].tsx
+// app/stage-end/[stageId].tsx
 
 import React from 'react';
 import { Text } from 'react-native';
@@ -17,7 +17,7 @@ export default function StageEndRoute() {
     <StageEndScreen
       stageId={stageId}
       onSeeAnswers={() => {
-        router.push({
+        router.replace({
           pathname: '/correction/[stageId]/[questionIndex]',
           params: {
             stageId,
