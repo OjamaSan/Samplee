@@ -28,9 +28,21 @@ function getAvatarSource(avatarId) {
  *  - stageId
  *  - onNextStage()
  *  - onEndGame()
+ *  - players?, scores? : fournis par le mode en ligne ({ [playerId]: points }).
+ *    Absents → joueurs et réponses de la partie locale.
+ *  - waitingText? : affiché à la place des boutons quand ils sont absents
+ *    (joueur en ligne qui n'est pas l'hôte)
  */
-export function StageScoreScreen({ stageId, onNextStage, onEndGame }) {
-  const { players } = usePlayers();
+export function StageScoreScreen({
+  stageId,
+  onNextStage,
+  onEndGame,
+  players: playersProp,
+  scores: scoresProp,
+  waitingText = 'Waiting for the host…',
+}) {
+  const { players: localPlayers } = usePlayers();
+  const players = playersProp ?? localPlayers;
 
   const stage = STAGES.find((s) => s.id === stageId);
   const stageLabel = stage
@@ -40,23 +52,7 @@ export function StageScoreScreen({ stageId, onNextStage, onEndGame }) {
   const stageTheme = getStageTheme(stageId);
   const tone = stageTheme.family;
 
-  const questions = QUESTIONS_BY_STAGE[stageId] || [];
-  const stageResults = getStageResults(stageId);
-
-  const scores = {};
-  players.forEach((p) => {
-    scores[p.id] = 0;
-  });
-
-  questions.forEach((q) => {
-    const res = stageResults?.[q.id];
-    if (!res) return;
-    players.forEach((p) => {
-      const ans = res.answersByPlayer?.[p.id];
-      const score = computeScoreForPlayer(ans, q);
-      scores[p.id] += score;
-    });
-  });
+  const scores = scoresProp ?? computeLocalStageScores(stageId, players);
 
   const orderedPlayers = [...players].sort(
     (a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0)
@@ -178,6 +174,17 @@ export function StageScoreScreen({ stageId, onNextStage, onEndGame }) {
       </View>
 
       {/* Boutons bas de page */}
+      {!onNextStage && !onEndGame ? (
+        <Text
+          style={[
+            theme.typography.bodyMd,
+            styles.waitingText,
+            { color: stageTheme.primaryText },
+          ]}
+        >
+          {waitingText}
+        </Text>
+      ) : (
       <View style={styles.footer}>
         <View style={styles.footerButtonWrapper}>
           <Button
@@ -198,11 +205,34 @@ export function StageScoreScreen({ stageId, onNextStage, onEndGame }) {
           />
         </View>
       </View>
+      )}
     </ScreenContainer>
   );
 }
 
 export default StageScoreScreen;
+
+// Scores d'une manche à partir des réponses de la partie locale
+function computeLocalStageScores(stageId, players) {
+  const questions = QUESTIONS_BY_STAGE[stageId] || [];
+  const stageResults = getStageResults(stageId);
+
+  const scores = {};
+  players.forEach((p) => {
+    scores[p.id] = 0;
+  });
+
+  questions.forEach((q) => {
+    const res = stageResults?.[q.id];
+    if (!res) return;
+    players.forEach((p) => {
+      const ans = res.answersByPlayer?.[p.id];
+      scores[p.id] += computeScoreForPlayer(ans, q);
+    });
+  });
+
+  return scores;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -265,6 +295,10 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  waitingText: {
+    textAlign: 'center',
     marginTop: 16,
   },
   footerButtonWrapper: {

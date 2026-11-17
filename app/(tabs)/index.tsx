@@ -13,9 +13,16 @@ export default function HomeRoute() {
     router.replace('/(tabs)/player-setup');
   };
 
+  const handlePlayOnline = () => {
+    router.push('/online');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <HomeScreen onNewGame={handleNewGame} />
+      <HomeScreen
+        onNewGame={handleNewGame}
+        onPlayOnline={handlePlayOnline}
+      />
     </SafeAreaView>
   );
 }

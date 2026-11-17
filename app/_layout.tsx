@@ -45,6 +45,7 @@ export default function RootLayout() {
         <Stack.Screen name="correction/[stageId]/[questionIndex]" options={IN_GAME} />
         <Stack.Screen name="stage-score/[stageId]" options={IN_GAME} />
         <Stack.Screen name="game-end" options={IN_GAME} />
+        <Stack.Screen name="room/[code]" options={IN_GAME} />
       </Stack>
     </PlayersProvider>
   );

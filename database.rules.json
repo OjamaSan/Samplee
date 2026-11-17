@@ -1,0 +1,37 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('hostUid').val() === auth.uid)",
+        ".validate": "newData.hasChildren(['hostUid', 'phase'])",
+        "hostUid": {
+          ".validate": "newData.val() === auth.uid || newData.val() === data.val()"
+        },
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['name', 'avatarId']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 16"
+          }
+        },
+        "presence": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+        "answers": {
+          "$stageId": {
+            "$questionId": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/phase').val() === 'question' && root.child('rooms/' + $code + '/stageId').val() === $stageId && root.child('rooms/' + $code + '/questionId').val() === $questionId",
+                ".validate": "newData.hasChildren(['artist', 'song']) && newData.child('artist').isString() && newData.child('artist').val().length <= 100 && newData.child('song').isString() && newData.child('song').val().length <= 100"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

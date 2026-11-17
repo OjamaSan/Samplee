@@ -6,7 +6,7 @@ import { theme } from '../theme/theme';
 import { Button } from '../components/Button';
 import { ScreenContainer } from '../components/ScreenContainer';
 
-export function HomeScreen({ onNewGame }) {
+export function HomeScreen({ onNewGame, onPlayOnline }) {
   return (
     <ScreenContainer style={styles.container}>
       <View style={styles.content}>
@@ -21,11 +21,18 @@ export function HomeScreen({ onNewGame }) {
         {/* Colonne de boutons */}
         <View style={styles.buttonsColumn}>
           <Button
-            title="New game"
+            title="One device"
             variant="light"
             tone="rouge"
             size="lg"
             onPress={onNewGame}
+          />
+          <Button
+            title="Play online"
+            variant="solid"
+            tone="green"
+            size="lg"
+            onPress={onPlayOnline}
           />
           <Button
             title="How to play ?"

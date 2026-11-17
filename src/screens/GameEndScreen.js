@@ -23,31 +23,19 @@ function getAvatarSource(avatarId) {
 /**
  * Props :
  *  - onBackToMenu()
+ *  - onPlayAgain()? : bouton "Play again" (hôte en ligne)
+ *  - players?, scores? : fournis par le mode en ligne ({ [playerId]: points }).
+ *    Absents → joueurs et réponses de la partie locale.
  */
-export function GameEndScreen({ onBackToMenu }) {
-  const { players } = usePlayers();
-
-  const allResults = getAllResults(); // { [stageId]: { [questionId]: { answersByPlayer } } }
-
-  const scores = {};
-  players.forEach((p) => {
-    scores[p.id] = 0;
-  });
-
-  Object.keys(allResults).forEach((stageId) => {
-    const questions = QUESTIONS_BY_STAGE[stageId] || [];
-    const stageResults = allResults[stageId];
-
-    questions.forEach((q) => {
-      const res = stageResults?.[q.id];
-      if (!res) return;
-      players.forEach((p) => {
-        const ans = res.answersByPlayer?.[p.id];
-        const score = computeScoreForPlayer(ans, q);
-        scores[p.id] += score;
-      });
-    });
-  });
+export function GameEndScreen({
+  onBackToMenu,
+  onPlayAgain,
+  players: playersProp,
+  scores: scoresProp,
+}) {
+  const { players: localPlayers } = usePlayers();
+  const players = playersProp ?? localPlayers;
+  const scores = scoresProp ?? computeLocalGameScores(players);
 
   const ordered = [...players].sort(
     (a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0)
@@ -205,6 +193,16 @@ export function GameEndScreen({ onBackToMenu }) {
 
       {/* Bouton retour menu */}
       <View style={styles.footer}>
+        {onPlayAgain && (
+          <Button
+            variant="solid"
+            tone="green"
+            size="lg"
+            title="Play again"
+            onPress={onPlayAgain}
+            style={styles.playAgainButton}
+          />
+        )}
         <Button
           variant="light"
           tone="rouge"
@@ -218,6 +216,32 @@ export function GameEndScreen({ onBackToMenu }) {
 }
 
 export default GameEndScreen;
+
+// Total de chaque joueur sur toutes les manches de la partie locale
+function computeLocalGameScores(players) {
+  const allResults = getAllResults(); // { [stageId]: { [questionId]: { answersByPlayer } } }
+
+  const scores = {};
+  players.forEach((p) => {
+    scores[p.id] = 0;
+  });
+
+  Object.keys(allResults).forEach((stageId) => {
+    const questions = QUESTIONS_BY_STAGE[stageId] || [];
+    const stageResults = allResults[stageId];
+
+    questions.forEach((q) => {
+      const res = stageResults?.[q.id];
+      if (!res) return;
+      players.forEach((p) => {
+        const ans = res.answersByPlayer?.[p.id];
+        scores[p.id] += computeScoreForPlayer(ans, q);
+      });
+    });
+  });
+
+  return scores;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -363,5 +387,8 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 16,
     alignItems: 'center',
+  },
+  playAgainButton: {
+    marginBottom: 12,
   },
 });

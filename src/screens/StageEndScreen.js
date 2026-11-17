@@ -8,6 +8,12 @@ import { theme } from '@/src/theme/theme';
 import { STAGES } from '@/src/data/stages';
 import { getStageTheme } from '@/src/theme/stageTheme';
 
+/**
+ * Props :
+ *  - stageId
+ *  - onSeeAnswers() : si absent (joueur en ligne qui n'est pas l'hôte),
+ *    on affiche un message d'attente au lieu du bouton.
+ */
 export function StageEndScreen({ stageId, onSeeAnswers }) {
   const stage = STAGES.find((s) => s.id === stageId);
 
@@ -65,44 +71,40 @@ export function StageEndScreen({ stageId, onSeeAnswers }) {
 
         <View style={styles.spacer} />
 
-        <Text
-          style={[
-            theme.typography.bodyMd,
-            styles.text,
-            { color: stageTheme.primaryText },
-          ]}
-        >
-          Click the button
-        </Text>
-        <Text
-          style={[
-            theme.typography.bodyMd,
-            styles.text,
-            { color: stageTheme.primaryText },
-          ]}
-        >
-          below to start
-        </Text>
-        <Text
-          style={[
-            theme.typography.bodyMd,
-            styles.text,
-            { color: stageTheme.primaryText },
-          ]}
-        >
-          correction.
-        </Text>
+        {onSeeAnswers ? (
+          <Text
+            style={[
+              theme.typography.bodyMd,
+              styles.text,
+              { color: stageTheme.primaryText },
+            ]}
+          >
+            {'Click the button\nbelow to start\ncorrection.'}
+          </Text>
+        ) : (
+          <Text
+            style={[
+              theme.typography.bodyMd,
+              styles.text,
+              { color: stageTheme.primaryText },
+            ]}
+          >
+            {'The host will start\nthe correction.'}
+          </Text>
+        )}
       </View>
 
-      <View style={styles.footer}>
-        <Button
-          variant="light"
-          tone={tone}
-          size="lg"
-          title="See answers"
-          onPress={onSeeAnswers}
-        />
-      </View>
+      {onSeeAnswers && (
+        <View style={styles.footer}>
+          <Button
+            variant="light"
+            tone={tone}
+            size="lg"
+            title="See answers"
+            onPress={onSeeAnswers}
+          />
+        </View>
+      )}
     </ScreenContainer>
   );
 }

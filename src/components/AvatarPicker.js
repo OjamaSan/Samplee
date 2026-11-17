@@ -14,11 +14,15 @@ export function AvatarPicker({
   avatars = AVATARS,
   selectedId,
   onSelect,
+  // Avatars déjà choisis par d'autres joueurs : affichés en transparence
+  // (toujours sélectionnables, c'est juste une indication).
+  dimmedIds = [],
 }) {
   return (
     <View style={styles.grid}>
       {avatars.map((avatar) => {
         const isSelected = avatar.id === selectedId;
+        const isDimmed = !isSelected && dimmedIds.includes(avatar.id);
 
         return (
           <Pressable
@@ -27,6 +31,7 @@ export function AvatarPicker({
             style={[
               styles.avatarWrapper,
               isSelected && styles.avatarWrapperSelected,
+              isDimmed && styles.avatarWrapperDimmed,
             ]}
           >
             <Image
@@ -60,6 +65,9 @@ const styles = StyleSheet.create({
   },
   avatarWrapperSelected: {
     borderColor: theme.colors.rouge[500],
+  },
+  avatarWrapperDimmed: {
+    opacity: 0.35,
   },
   avatarImage: {
     width: '100%',
