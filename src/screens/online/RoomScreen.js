@@ -16,6 +16,7 @@ import { Button } from '../../components/Button';
 import { ProfileForm } from '../../components/ProfileForm';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { loadProfile, saveProfile } from '../../online/localProfile';
+import { useKeepScreenOn } from '../../online/useKeepScreenOn';
 import { OnlinePlayerRow } from '../../components/OnlinePlayerRow';
 import {
   computeScores,
@@ -49,6 +50,7 @@ export function RoomScreen({ code, onExit }) {
   const isMember = !!(uid && room?.players?.[uid]);
   const isHost = !!(uid && room?.hostUid === uid);
   usePresence(code, uid, isMember);
+  useKeepScreenOn(isMember);
 
   const players = useMemo(() => getPlayerList(room), [room]);
 

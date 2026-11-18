@@ -1,5 +1,31 @@
 {
   "database": {
     "rules": "database.rules.json"
+  },
+  "hosting": {
+    "public": "dist",
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "rewrites": [
+      { "source": "/room/*", "destination": "/room/[code].html" },
+      { "source": "/round/*/*", "destination": "/round/[stageId]/[questionIndex].html" },
+      { "source": "/correction/*/*", "destination": "/correction/[stageId]/[questionIndex].html" },
+      { "source": "/stage-end/*", "destination": "/stage-end/[stageId].html" },
+      { "source": "/stage-score/*", "destination": "/stage-score/[stageId].html" }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      },
+      {
+        "source": "/_expo/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      },
+      {
+        "source": "/assets/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      }
+    ]
   }
 }

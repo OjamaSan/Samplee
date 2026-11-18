@@ -10,14 +10,14 @@ import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyBm4Wl89PfmEZLowpD1VAoZkdzD0yYoFJU',
-  authDomain: 'samplee-4fbe1.firebaseapp.com',
+  apiKey: 'AIzaSyCI7l-gnV4fA5__MdHj1ja7IwtOFpzGom8',
+  authDomain: 'samplee-a7aef.firebaseapp.com',
   databaseURL:
-    'https://samplee-4fbe1-default-rtdb.europe-west1.firebasedatabase.app',
-  projectId: 'samplee-4fbe1',
-  storageBucket: 'samplee-4fbe1.firebasestorage.app',
-  messagingSenderId: '842502501819',
-  appId: '1:842502501819:web:af55ed98eff51c9cd3409e',
+    'https://samplee-a7aef-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'samplee-a7aef',
+  storageBucket: 'samplee-a7aef.firebasestorage.app',
+  messagingSenderId: '943918489893',
+  appId: '1:943918489893:web:820db9f1cef1b2c110facc',
 };
 
 const app = getApps()[0] ?? initializeApp(firebaseConfig);
