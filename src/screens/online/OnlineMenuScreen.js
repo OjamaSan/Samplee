@@ -3,10 +3,9 @@
 // Point d'entrée du mode en ligne : on choisit son pseudo / avatar,
 // puis on crée une partie ou on en rejoint une avec un code.
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,7 +13,10 @@ import {
 } from 'react-native';
 import { Button } from '../../components/Button';
 import { ProfileForm } from '../../components/ProfileForm';
-import { ScreenContainer } from '../../components/ScreenContainer';
+import {
+  ScreenContainer,
+  useScrollToEndWhen,
+} from '../../components/ScreenContainer';
 import { loadProfile, saveProfile } from '../../online/localProfile';
 import {
   createRoom,
@@ -30,6 +32,8 @@ export function OnlineMenuScreen({ onBack, onEnterRoom }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(null); // 'create' | 'join' | null
   const [error, setError] = useState('');
+  const scrollRef = useRef(null);
+  useScrollToEndWhen(scrollRef, error);
 
   const hasName = sanitizeName(profile.name).length > 0;
   const canJoin = hasName && isValidCode(code);
@@ -58,12 +62,13 @@ export function OnlineMenuScreen({ onBack, onEnterRoom }) {
     });
 
   return (
-    <ScreenContainer style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer
+      scroll
+      scrollRef={scrollRef}
+      style={styles.container}
+      contentStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
         <View style={styles.headerRow}>
           <View style={styles.backButtonWrapper}>
             <Button
@@ -137,7 +142,6 @@ export function OnlineMenuScreen({ onBack, onEnterRoom }) {
         )}
 
         {!!error && <Text style={styles.errorText}>{error}</Text>}
-      </ScrollView>
     </ScreenContainer>
   );
 }

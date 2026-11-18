@@ -8,9 +8,10 @@ import {
   Image,
   TextInput,
 } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { Button } from '@/src/components/Button';
+import { SamplePlayButton } from '@/src/components/SamplePlayButton';
+import { usePlaybackProgress, useSamplePlayer } from '@/src/lib/samplePlayback';
 import { theme } from '@/src/theme/theme';
 import { usePlayers } from '@/src/context/PlayersContext';
 import { AVATARS } from '@/src/data/avatars';
@@ -41,23 +42,12 @@ export function SampleQuestionScreen({ question, onNext }) {
   const stageTheme = getStageTheme(question.stageId);
   const tone = stageTheme.family; // 'turquoise', 'blue', etc.
 
-  // ------- AUDIO : play / stop / replay -------
-  // Le player est créé / libéré automatiquement avec l'écran (expo-audio).
-  const audio = useAudioPlayer(question.audioSource ?? null);
-  const status = useAudioPlayerStatus(audio);
-  const isPlaying = status.playing;
-
-  const handlePlaySample = () => {
-    if (!status.isLoaded) return;
-    if (status.playing) {
-      // Si ça joue déjà → stop
-      audio.pause();
-    } else {
-      // Relance depuis le début
-      audio.seekTo(0);
-      audio.play();
-    }
-  };
+  // ------- AUDIO : lecture depuis le début / stop -------
+  const sample = useSamplePlayer(question.audioSource);
+  const sampleProgress = usePlaybackProgress({
+    playing: sample.isPlaying,
+    duration: sample.duration,
+  });
 
   // ------- GESTION DES REPONSES PAR JOUEUR -------
 
@@ -124,6 +114,7 @@ export function SampleQuestionScreen({ question, onNext }) {
 
   const handleNextQuestion = () => {
     if (!allAnswered) return;
+    sample.stop();
     onNext?.({ questionId: question.id, answersByPlayer });
   };
 
@@ -321,13 +312,13 @@ export function SampleQuestionScreen({ question, onNext }) {
 
       {/* Bouton Play sample */}
       <View style={styles.playButtonWrapper}>
-        <Button
-          variant="light"
+        <SamplePlayButton
           tone={tone}
-          size="sm"
-          title={isPlaying ? 'Stop sample' : 'Play sample'}
-          onPress={handlePlaySample}
-          style={styles.playButton}
+          label="Play sample"
+          isPlaying={sample.isPlaying}
+          progress={sampleProgress}
+          onPlay={sample.play}
+          onStop={sample.stop}
         />
       </View>
 
@@ -386,10 +377,6 @@ const styles = StyleSheet.create({
   playButtonWrapper: {
     alignItems: 'center',
     marginBottom: 24,
-  },
-  playButton: {
-    width: 200,
-    alignSelf: 'center',
   },
     questionText: {
     textAlign: 'center',

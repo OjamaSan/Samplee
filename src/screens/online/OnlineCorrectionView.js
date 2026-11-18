@@ -5,19 +5,21 @@
 // et le moment de la révélation : tous les écrans se mettent à jour
 // en même temps. Les points ne s'affichent qu'après la révélation.
 
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { OnlinePlayerRow } from '../../components/OnlinePlayerRow';
+import { SamplePlayButton } from '../../components/SamplePlayButton';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { getAnswerResult } from '../../lib/checkAnswer';
+import { useSamplePlayer } from '../../lib/samplePlayback';
 import {
   getAnswersFor,
   getStageQuestions,
   goToNextCorrection,
   updateCorrection,
 } from '../../online/roomApi';
+import { useOnlinePlayback } from '../../online/useOnlinePlayback';
 import { getStageTheme } from '../../theme/stageTheme';
 import { theme } from '../../theme/theme';
 
@@ -44,9 +46,38 @@ export function OnlineCorrectionView({ code, room, uid, isHost, players, questio
   const title = isRevealed ? question.answerTitle : question.title;
   const coverSource = isRevealed ? question.answerCoverSource : question.coverSource;
 
+  // ------- Audio de correction : joué chez l'hôte -------
+  const correction = useSamplePlayer(isHost ? question.correctionAudioSource : null);
+  const playback = useOnlinePlayback({
+    code,
+    room,
+    isHost,
+    kind: 'correction',
+    questionId: question.id,
+    player: correction,
+  });
+  useBroadcastCorrectionSteps({ code, room, question, status: correction.status, isHost });
+
+  const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
+  const handlePlay = () => {
+    // Pas d'audio de correction : on révèle directement
+    if (!question.correctionAudioSource) {
+      updateCorrection(code, { revealed: true }).catch(() => {});
+      return;
+    }
+    if (correction.play()) setHasPlayedOnce(true);
+  };
+
+  const playLabel = !isHost
+    ? 'Waiting host'
+    : hasPlayedOnce
+      ? 'Listen again'
+      : 'Reveal answer';
+
   const [advancing, setAdvancing] = useState(false);
   const handleNext = async () => {
     setAdvancing(true);
+    correction.stop();
     try {
       await goToNextCorrection(code, room);
     } finally {
@@ -55,11 +86,11 @@ export function OnlineCorrectionView({ code, room, uid, isHost, players, questio
   };
 
   return (
-    <ScreenContainer style={{ backgroundColor: stageTheme.background }}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer
+      scroll
+      style={{ backgroundColor: stageTheme.background }}
+      contentStyle={styles.scrollContent}
+    >
         <Text style={[styles.progress, { color: stageTheme.primaryText }]}>
           Correction {questionNumber}/{questions.length}
         </Text>
@@ -87,20 +118,15 @@ export function OnlineCorrectionView({ code, room, uid, isHost, players, questio
           </Text>
         </View>
 
-        {isHost ? (
-          <HostCorrectionPlayer
-            code={code}
-            room={room}
-            question={question}
-            tone={tone}
-          />
-        ) : (
-          !isRevealed && (
-            <Text style={[styles.listenHint, { color: stageTheme.primaryText }]}>
-              🔊 Listen to the correction on the host&apos;s device
-            </Text>
-          )
-        )}
+        <SamplePlayButton
+          tone={tone}
+          label={playLabel}
+          isPlaying={playback.isPlaying}
+          progress={playback.progress}
+          onPlay={isHost ? handlePlay : undefined}
+          onStop={isHost ? correction.stop : undefined}
+          style={styles.playButton}
+        />
 
         {/* Joueurs : réponses et points (après révélation) */}
         <View style={[styles.card, { backgroundColor: stageTheme.cardBackground }]}>
@@ -163,7 +189,6 @@ export function OnlineCorrectionView({ code, room, uid, isHost, players, questio
             )
           )}
         </View>
-      </ScrollView>
     </ScreenContainer>
   );
 }
@@ -179,16 +204,11 @@ function formatAnswerWithResult(answer, result) {
 }
 
 /**
- * Audio de correction, joué uniquement chez l'hôte. Les étapes
- * (bpm / pitch / reveal) suivent la position réelle de l'audio, comme
- * en mode local, et sont diffusées aux autres joueurs.
+ * Chez l'hôte, les étapes (bpm / pitch / reveal) suivent la position réelle
+ * de l'audio de correction, comme en mode local, et sont diffusées aux
+ * autres joueurs.
  */
-function HostCorrectionPlayer({ code, room, question, tone }) {
-  const hasAudio = !!question.correctionAudioSource;
-  const audio = useAudioPlayer(question.correctionAudioSource ?? null);
-  const status = useAudioPlayerStatus(audio);
-  const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
-
+function useBroadcastCorrectionSteps({ code, room, question, status, isHost }) {
   // On garde les dernières valeurs diffusées pour n'écrire dans Firebase
   // que lorsque quelque chose change (et pas à chaque tick de l'audio).
   const sentRef = useRef({
@@ -198,6 +218,7 @@ function HostCorrectionPlayer({ code, room, question, tone }) {
 
   const steps = question.correctionSteps;
   useEffect(() => {
+    if (!isHost) return;
     if (!status.playing && !status.didJustFinish) return;
 
     const t = status.currentTime;
@@ -218,36 +239,7 @@ function HostCorrectionPlayer({ code, room, question, tone }) {
     if (Object.keys(changes).length) {
       updateCorrection(code, changes).catch(() => {});
     }
-  }, [status.currentTime, status.playing, status.didJustFinish, steps, code]);
-
-  const handlePress = () => {
-    // Pas d'audio de correction : on révèle directement
-    if (!hasAudio) {
-      sentRef.current.revealed = true;
-      updateCorrection(code, { revealed: true }).catch(() => {});
-      return;
-    }
-    if (!status.isLoaded) return;
-    if (status.playing) {
-      audio.pause();
-      return;
-    }
-    audio.seekTo(0);
-    audio.play();
-    setHasPlayedOnce(true);
-  };
-
-  const label = status.playing
-    ? 'Stop'
-    : hasPlayedOnce
-      ? 'Listen again'
-      : 'Reveal answer';
-
-  return (
-    <View style={styles.playButton}>
-      <Button variant="light" tone={tone} size="sm" title={label} onPress={handlePress} />
-    </View>
-  );
+  }, [isHost, status.currentTime, status.playing, status.didJustFinish, steps, code]);
 }
 
 const styles = StyleSheet.create({
@@ -285,13 +277,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   playButton: {
-    width: 200,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  listenHint: {
-    ...theme.typography.bodyMd,
-    textAlign: 'center',
     marginBottom: 16,
   },
   card: {

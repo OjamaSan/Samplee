@@ -14,6 +14,7 @@ import { AVATARS } from '../data/avatars';
 import { STAGES } from '../data/stages';
 import { getStageTheme } from '../theme/stageTheme';
 import { theme } from '../theme/theme';
+import { getWinners, getWinnersTitle, rankPlayers } from '../lib/ranking';
 
 // ------- utils avatar -------
 
@@ -54,16 +55,12 @@ export function StageScoreScreen({
 
   const scores = scoresProp ?? computeLocalStageScores(stageId, players);
 
-  const orderedPlayers = [...players].sort(
-    (a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0)
+  // Classement avec égalités (1, 1, 2…) : plusieurs gagnants possibles
+  const orderedPlayersWithTotal = rankPlayers(players, scores);
+  const winnersTitle = getWinnersTitle(
+    getWinners(orderedPlayersWithTotal),
+    'this stage'
   );
-
-  const winner = orderedPlayers[0] || null;
-
-  const orderedPlayersWithTotal = orderedPlayers.map((p) => ({
-    ...p,
-    total: scores[p.id] ?? 0,
-  }));
 
   if (!stage) {
     return (
@@ -92,8 +89,8 @@ export function StageScoreScreen({
         { backgroundColor: stageTheme.background },
       ]}
     >
-      {/* Titre : "Player X wins this stage" */}
-      {winner ? (
+      {/* Titre : "X wins this stage", "X and Y win this stage"… */}
+      {winnersTitle ? (
         <Text
           style={[
             theme.typography.headingSm,
@@ -101,7 +98,7 @@ export function StageScoreScreen({
             { color: stageTheme.primaryText },
           ]}
         >
-          {winner.name} wins this stage
+          {winnersTitle}
         </Text>
       ) : (
         <Text
@@ -126,21 +123,42 @@ export function StageScoreScreen({
           const avatarSource = getAvatarSource(player.avatarId);
           return (
             <View key={player.id}>
-              <View style={styles.playerRow}>
+              <View
+                style={[
+                  styles.playerRow,
+                  player.isConnected === false && styles.offlineRow,
+                ]}
+              >
+                <Text style={[styles.rankText, { color: stageTheme.cardText }]}>
+                  {player.rank}
+                </Text>
                 <View style={styles.playerInfo}>
                   {avatarSource ? (
                     <Image source={avatarSource} style={styles.avatarImage} />
                   ) : (
                     <View style={styles.avatarPlaceholder} />
                   )}
-                  <Text
-                    style={[
-                      styles.playerName,
-                      { color: stageTheme.cardText },
-                    ]}
-                  >
-                    {player.name}
-                  </Text>
+                  <View style={styles.playerTexts}>
+                    <Text
+                      style={[
+                        styles.playerName,
+                        { color: stageTheme.cardText },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {player.name}
+                    </Text>
+                    {player.isConnected === false && (
+                      <Text
+                        style={[
+                          styles.offlineText,
+                          { color: stageTheme.cardText },
+                        ]}
+                      >
+                        offline
+                      </Text>
+                    )}
+                  </View>
                 </View>
 
                 <View
@@ -256,6 +274,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  rankText: {
+    ...theme.typography.bodyMd,
+    width: 24,
+    marginRight: 4,
+  },
   playerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -275,8 +298,18 @@ const styles = StyleSheet.create({
     marginRight: 12,
     resizeMode: 'cover',
   },
+  playerTexts: {
+    flex: 1,
+  },
   playerName: {
     ...theme.typography.bodyMd,
+  },
+  offlineRow: {
+    opacity: 0.45,
+  },
+  offlineText: {
+    ...theme.typography.bodySmCondensed,
+    opacity: 0.8,
   },
   scoreBadge: {
     width: 40,

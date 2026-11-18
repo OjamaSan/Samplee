@@ -10,11 +10,17 @@
 //   players/{uid}: { name, avatarId, joinedAt }  ← écrit par le joueur lui-même
 //   presence/{uid}: true tant que le joueur est connecté (effacé
 //                   automatiquement par Firebase à la déconnexion)
-//   answers/{stageId}/{questionId}/{uid}: { artist, song }
-//                   ← écrit par le joueur, uniquement pendant SA question
+//   answers/{stageId}/{questionId}/{uid}: { artist, song, editing? }
+//                   ← écrit par le joueur, uniquement pendant SA question.
+//                   editing: true tant qu'il modifie sa réponse (elle ne
+//                   compte alors pas comme donnée pour passer à la suite)
 //   correctionIndex, revealed, correctionInfo : correction en cours
 //                   (l'hôte les met à jour au fil de l'audio de correction,
 //                   tous les écrans suivent)
+//   playback       : { kind: 'sample' | 'correction', questionId, startedAt,
+//                   duration } tant que l'hôte joue un extrait, pour que
+//                   tous les écrans affichent la progression. Effacé à
+//                   l'arrêt et à chaque changement d'étape.
 
 import { useEffect, useState } from 'react';
 import {
@@ -56,6 +62,18 @@ export function normalizeCode(raw) {
 
 export function isValidCode(code) {
   return normalizeCode(code).length === CODE_LENGTH;
+}
+
+/**
+ * Le pseudo est-il déjà pris par un autre joueur de la partie ?
+ * (comparaison sans tenir compte des majuscules ni des espaces en trop)
+ */
+export function isNameTaken(players, name, ownUid = null) {
+  const wanted = sanitizeName(name).toLowerCase();
+  if (!wanted) return false;
+  return Object.entries(players ?? {}).some(
+    ([id, p]) => id !== ownUid && sanitizeName(p?.name).toLowerCase() === wanted
+  );
 }
 
 /** Nettoie un pseudo (espaces, retours à la ligne, longueur). */
@@ -127,6 +145,13 @@ export async function joinRoom(code, profile) {
     }
   }
 
+  // Deux joueurs ne peuvent pas avoir le même pseudo (l'avatar, si)
+  if (isNameTaken(players, profile.name, uid)) {
+    throw new Error(
+      `The name "${sanitizeName(profile.name)}" is already taken in this game. Please choose another one.`
+    );
+  }
+
   await set(ref(db, `rooms/${code}/players/${uid}`), {
     name: sanitizeName(profile.name),
     avatarId: profile.avatarId,
@@ -134,11 +159,20 @@ export async function joinRoom(code, profile) {
   });
 }
 
-/** Retire le joueur courant de la partie. */
+/**
+ * Le joueur courant quitte la partie.
+ * En salle d'attente, il est retiré de la liste. Une fois la partie
+ * commencée, il reste inscrit (ses points restent au classement) et
+ * apparaît simplement hors ligne ; il peut revenir avec le même lien.
+ */
 export async function leaveRoom(code) {
   const uid = await ensureSignedIn();
   await remove(ref(db, `rooms/${code}/presence/${uid}`));
-  await remove(ref(db, `rooms/${code}/players/${uid}`));
+
+  const phase = (await get(ref(db, `rooms/${code}/phase`))).val();
+  if (phase === 'lobby') {
+    await remove(ref(db, `rooms/${code}/players/${uid}`));
+  }
 }
 
 /** L'hôte retire un joueur de la salle d'attente. */
@@ -151,7 +185,49 @@ export async function kickPlayer(code, playerUid) {
 
 /** L'hôte fait passer la partie à l'étape suivante. */
 export async function setPhase(code, phase, extra = {}) {
-  await update(roomRef(code), { phase, ...extra });
+  await update(roomRef(code), { phase, playback: null, ...extra });
+}
+
+// ---------- Lecture des extraits (diffusée par l'hôte) ----------
+
+/** L'hôte signale le début d'une lecture (durée en secondes). */
+export async function startPlayback(code, { kind, questionId, duration }) {
+  await set(ref(db, `rooms/${code}/playback`), {
+    kind,
+    questionId,
+    duration,
+    startedAt: serverTimestamp(),
+  });
+}
+
+/** L'hôte signale la fin (ou l'arrêt) de la lecture. */
+export async function stopPlayback(code) {
+  await remove(ref(db, `rooms/${code}/playback`));
+}
+
+/** Lecture en cours pour cet extrait, ou null. */
+export function getPlaybackFor(room, kind, questionId) {
+  const playback = room?.playback;
+  if (!playback || playback.kind !== kind || playback.questionId !== questionId) {
+    return null;
+  }
+  return playback;
+}
+
+/**
+ * Écart entre l'horloge de cet appareil et celle du serveur (ms),
+ * pour calculer où en est la lecture lancée par l'hôte.
+ */
+export function useServerTimeOffset() {
+  const [offset, setOffset] = useState(0);
+  useEffect(
+    () =>
+      onValue(ref(db, '.info/serverTimeOffset'), (snapshot) => {
+        setOffset(snapshot.val() ?? 0);
+      }),
+    []
+  );
+  return offset;
 }
 
 // ---------- Manches et questions ----------
@@ -183,7 +259,26 @@ export async function startStage(code, stageId) {
     questionIndex: 0,
     questionId: questions[0].id,
     [`answers/${stageId}`]: null,
+    playback: null,
   });
+}
+
+/** L'hôte revient à la question précédente (les réponses sont conservées). */
+export async function goToPreviousQuestion(code, room) {
+  const questions = getStageQuestions(room.stageId);
+  const prevIndex = (room.questionIndex ?? 0) - 1;
+  if (prevIndex < 0 || !questions[prevIndex]) return;
+
+  await update(roomRef(code), {
+    questionIndex: prevIndex,
+    questionId: questions[prevIndex].id,
+    playback: null,
+  });
+}
+
+/** L'hôte quitte une partie en cours : elle se termine pour tout le monde. */
+export async function endGame(code) {
+  await update(roomRef(code), { phase: 'closed', playback: null });
 }
 
 /** L'hôte passe à la question suivante, ou termine la manche. */
@@ -195,9 +290,10 @@ export async function goToNextQuestion(code, room) {
     await update(roomRef(code), {
       questionIndex: nextIndex,
       questionId: questions[nextIndex].id,
+      playback: null,
     });
   } else {
-    await update(roomRef(code), { phase: 'stageEnd' });
+    await update(roomRef(code), { phase: 'stageEnd', playback: null });
   }
 }
 
@@ -214,6 +310,28 @@ export async function submitAnswer(code, room, answer) {
       song: String(answer.song ?? '').trim().slice(0, 100),
     }
   );
+}
+
+/**
+ * Le joueur rouvre sa réponse pour la modifier : elle reste enregistrée
+ * (elle compte si l'hôte passe quand même à la suite) mais n'est plus
+ * considérée comme donnée tant qu'il ne l'a pas renvoyée.
+ */
+export async function startEditingAnswer(code, room, answer) {
+  const uid = await ensureSignedIn();
+  await set(
+    ref(db, `rooms/${code}/answers/${room.stageId}/${room.questionId}/${uid}`),
+    {
+      artist: String(answer?.artist ?? ''),
+      song: String(answer?.song ?? ''),
+      editing: true,
+    }
+  );
+}
+
+/** Réponse donnée et validée (pas en cours de modification). */
+export function isAnswerFinal(answer) {
+  return !!answer && !answer.editing;
 }
 
 // ---------- Correction et scores ----------
@@ -261,6 +379,7 @@ export async function startCorrection(code) {
     correctionIndex: 0,
     revealed: false,
     correctionInfo: '',
+    playback: null,
   });
 }
 
@@ -274,9 +393,10 @@ export async function goToNextCorrection(code, room) {
       correctionIndex: nextIndex,
       revealed: false,
       correctionInfo: '',
+      playback: null,
     });
   } else {
-    await update(roomRef(code), { phase: 'stageScore' });
+    await update(roomRef(code), { phase: 'stageScore', playback: null });
   }
 }
 
@@ -296,6 +416,7 @@ export async function playAgain(code) {
     correctionIndex: null,
     revealed: null,
     correctionInfo: null,
+    playback: null,
   });
 }
 

@@ -65,7 +65,7 @@ export const STAGES = [
 
   {
     id: 'edm_1',
-    title: 'Electro / Dance',
+    title: 'EDM 1',
     periodLabel: '2004 - 2013',
     questionCount: 5,
     difficulty: 'easy', // valeur "brute" si tu veux switcher sur ça

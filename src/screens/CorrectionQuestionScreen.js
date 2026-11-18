@@ -1,10 +1,11 @@
 // src/screens/CorrectionQuestionScreen.js
 
 import { getAnswerResult } from '@/src/lib/checkAnswer';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from '../components/Button';
+import { SamplePlayButton } from '../components/SamplePlayButton';
+import { usePlaybackProgress, useSamplePlayer } from '../lib/samplePlayback';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { usePlayers } from '../context/PlayersContext';
 import { AVATARS } from '../data/avatars';
@@ -40,9 +41,12 @@ export function CorrectionQuestionScreen({
   const tone = stageTheme.family;
 
   // audio de correction
-  const audio = useAudioPlayer(question.correctionAudioSource ?? null);
-  const status = useAudioPlayerStatus(audio);
-  const isPlaying = status.playing;
+  const correction = useSamplePlayer(question.correctionAudioSource);
+  const { status } = correction;
+  const correctionProgress = usePlaybackProgress({
+    playing: correction.isPlaying,
+    duration: correction.duration,
+  });
 
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [hasRevealed, setHasRevealed] = useState(false);
@@ -88,23 +92,15 @@ export function CorrectionQuestionScreen({
   }, [players, answersByPlayer, question]);
 
   const handleRevealOrListen = () => {
-    if (!status.isLoaded) return;
-
-    if (status.playing) {
-      audio.pause();
-      return;
-    }
-
-    audio.seekTo(0);
-    audio.play();
-    setHasPlayedOnce(true);
+    if (correction.play()) setHasPlayedOnce(true);
   };
 
-  const buttonLabel = isPlaying
-    ? 'Stop'
-    : hasPlayedOnce
-      ? 'Listen again'
-      : 'Reveal answer';
+  const buttonLabel = hasPlayedOnce ? 'Listen again' : 'Reveal answer';
+
+  const handleNext = () => {
+    correction.stop();
+    onNext?.();
+  };
 
   // ----- rendu liste joueurs -----
 
@@ -330,12 +326,13 @@ export function CorrectionQuestionScreen({
 
       {/* Bouton reveal / listen */}
       <View style={styles.revealButtonWrapper}>
-        <Button
-          variant="light"
+        <SamplePlayButton
           tone={tone}
-          size="sm"
-          title={buttonLabel}
-          onPress={handleRevealOrListen}
+          label={buttonLabel}
+          isPlaying={correction.isPlaying}
+          progress={correctionProgress}
+          onPlay={handleRevealOrListen}
+          onStop={correction.stop}
         />
       </View>
 
@@ -349,7 +346,7 @@ export function CorrectionQuestionScreen({
           tone={tone}
           size="lg"
           title="Next question"
-          onPress={onNext}
+          onPress={handleNext}
         />
       </View>
     </ScreenContainer>

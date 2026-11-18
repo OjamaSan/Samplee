@@ -1,61 +1,85 @@
 // src/screens/StageSelectScreen.js
 
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   PanResponder,
+  Pressable,
 } from 'react-native';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { theme } from '../theme/theme';
 import { Button } from '../components/Button';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { STAGES } from '../data/stages';
-import { AVATARS } from '../data/avatars';
+import {
+  STAGE_CARD_HEIGHT,
+  STAGE_CARD_RADIUS,
+  STAGE_CARD_WIDTH,
+  StageCard,
+} from '../components/StageCard';
 
-const CARD_WIDTH = 300;
-const CARD_HEIGHT = 450;
+const CARD_WIDTH = STAGE_CARD_WIDTH;
+const CARD_HEIGHT = STAGE_CARD_HEIGHT;
 const SCREEN_HORIZONTAL_PADDING = 24; // comme PlayerSetup
 
-// utilitaire : retrouver la source d'un avatar à partir de son id
-function getAvatarSource(avatarId) {
-  if (!avatarId) return null;
-  const avatar = AVATARS.find((a) => a.id === avatarId);
-  return avatar?.source ?? null;
-}
+// Carrousel : écart horizontal entre deux cartes, et ressort du calage
+const CARD_SPACING = CARD_WIDTH * 0.62;
+const SPRING = { damping: 18, stiffness: 160, mass: 0.9 };
+const SWIPE_THRESHOLD = 40;
+
+const wrapIndex = (index, count) => ((index % count) + count) % count;
 
 export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
+  const count = STAGES.length;
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Avance / recule avec bouclage. On passe par la forme fonctionnelle de
-  // setState : le PanResponder (créé une seule fois) lit ainsi toujours
-  // l'index courant, et non celui du premier rendu.
-  const step = (delta) => {
-    setCurrentIndex((prev) => {
-      const count = STAGES.length;
-      return (prev + delta + count) % count;
-    });
+  // Position du carrousel en "nombre de cartes" (non bornée : le carrousel
+  // boucle). Elle suit le doigt pendant le swipe, puis se cale en douceur.
+  const position = useSharedValue(0);
+  const targetRef = useRef(0);
+
+  const goTo = (target) => {
+    targetRef.current = target;
+    setCurrentIndex(wrapIndex(target, count));
+    position.value = withSpring(target, SPRING);
   };
 
-  const handleNext = () => step(1);
-  const handlePrev = () => step(-1);
+  const handleNext = () => goTo(targetRef.current + 1);
+  const handlePrev = () => goTo(targetRef.current - 1);
 
-  // Swipe left/right sur la carte pour changer de stage
+  // Tap sur une carte voisine : on la ramène au centre par le plus court chemin
+  const handleCardPress = (index) => {
+    const current = targetRef.current;
+    let delta = wrapIndex(index - current, count);
+    if (delta > count / 2) delta -= count;
+    if (delta !== 0) goTo(current + delta);
+  };
+
+  // Swipe : les cartes suivent le doigt, puis se calent sur la plus proche
+  // (au moins une carte d'écart dès que le geste dépasse le seuil).
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 10, // on déclenche sur mouvement horizontal
-      onPanResponderRelease: (_, gestureState) => {
-        const { dx } = gestureState;
-        if (dx < -40) {
-          // swipe vers la gauche → stage suivant
-          handleNext();
-        } else if (dx > 40) {
-          // swipe vers la droite → stage précédent
-          handlePrev();
-        }
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderMove: (_, g) => {
+        position.value = targetRef.current - g.dx / CARD_SPACING;
       },
+      onPanResponderRelease: (_, g) => {
+        const start = targetRef.current;
+        let steps = Math.round(-g.dx / CARD_SPACING);
+        if (steps === 0 && Math.abs(g.dx) > SWIPE_THRESHOLD) {
+          steps = g.dx < 0 ? 1 : -1;
+        }
+        goTo(start + steps);
+      },
+      onPanResponderTerminate: () => goTo(targetRef.current),
     })
   ).current;
 
@@ -86,10 +110,6 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
     }
   };
 
-  const avatarSources =(currentStage.avatarIds || [])
-    .map((id) => getAvatarSource(id))
-    .filter(Boolean);
-
   return (
     <ScreenContainer style={styles.container}>
       {/* Back optionnel */}
@@ -112,64 +132,19 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
         Select stage
       </Text>
 
-      {/* Carte centrale + zone de swipe */}
+      {/* Carrousel des stages */}
       <View style={styles.cardWrapper}>
-        <View
-          style={styles.swipeZone}
-          {...panResponder.panHandlers}
-        >
-          <View
-            style={[
-              styles.stageCard,
-              {
-                backgroundColor: currentStage.colors.fill,
-                borderColor: currentStage.colors.border,
-              },
-            ]}
-          >
-            {/* Titre + période */}
-            <View style={styles.stageHeader}>
-              <Text
-                style={[theme.typography.headingLg, styles.stageTitle]}
-              >
-                {currentStage.title}
-              </Text>
-              <Text
-                style={[theme.typography.headingMd, styles.stagePeriod]}
-              >
-                {currentStage.periodLabel}
-              </Text>
-            </View>
-
-            {/* Avatars centrés */}
-            <View style={styles.avatarsRow}>
-              {avatarSources.map((src, i) => (
-                <Image
-                  key={i}
-                  source={src}
-                  style={styles.avatar}
-                  resizeMode="contain"
-                />
-              ))}
-            </View>
-
-            {/* Nombre de questions + difficulté */}
-            <View style={styles.metaContainer}>
-              <Text
-                style={[theme.typography.headingLg, styles.questionsText]}
-              >
-                {currentStage.questionCount} questions
-              </Text>
-              <Text
-                style={[
-                  theme.typography.headingMd,
-                  styles.difficultyText,
-                ]}
-              >
-                {currentStage.difficultyLabel}
-              </Text>
-            </View>
-          </View>
+        <View style={styles.swipeZone} {...panResponder.panHandlers}>
+          {STAGES.map((stage, index) => (
+            <CarouselCard
+              key={stage.id}
+              stage={stage}
+              index={index}
+              count={count}
+              position={position}
+              onPress={() => handleCardPress(index)}
+            />
+          ))}
         </View>
       </View>
 
@@ -212,6 +187,47 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
 
 export default StageSelectScreen;
 
+/**
+ * Une carte du carrousel. Sa place dépend de son écart avec la position
+ * courante : au centre en grand, les voisines plus petites, plus sombres
+ * et derrière, les autres cachées.
+ */
+function CarouselCard({ stage, index, count, position, onPress }) {
+  const cardStyle = useAnimatedStyle(() => {
+    // Écart (en cartes) le plus court, le carrousel bouclant
+    let offset = (((index - position.value) % count) + count) % count;
+    if (offset > count / 2) offset -= count;
+    const distance = Math.abs(offset);
+
+    return {
+      zIndex: Math.round(100 - distance * 10),
+      opacity: interpolate(distance, [0, 1, 1.6, 2], [1, 1, 0.6, 0], 'clamp'),
+      transform: [
+        { translateX: offset * CARD_SPACING },
+        { scale: interpolate(distance, [0, 1, 2], [1, 0.8, 0.65], 'clamp') },
+      ],
+    };
+  });
+
+  const shadeStyle = useAnimatedStyle(() => {
+    let offset = (((index - position.value) % count) + count) % count;
+    if (offset > count / 2) offset -= count;
+    return {
+      opacity: interpolate(Math.abs(offset), [0, 1], [0, 0.45], 'clamp'),
+    };
+  });
+
+  return (
+    <Animated.View style={[styles.carouselItem, cardStyle]}>
+      <Pressable onPress={onPress}>
+        <StageCard stage={stage} />
+        {/* Assombrissement des cartes en arrière-plan */}
+        <Animated.View pointerEvents="none" style={[styles.cardShade, shadeStyle]} />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.rouge[500],
@@ -244,54 +260,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    // Le carrousel déborde jusqu'aux bords de l'écran
+    marginHorizontal: -SCREEN_HORIZONTAL_PADDING,
+    overflow: 'hidden',
   },
   swipeZone: {
     width: '100%',
-    alignItems: 'center',
-  },
-  stageCard: {
-    width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 32,
-    borderWidth: 9,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    justifyContent: 'space-between',
-  },
-  stageHeader: {
     alignItems: 'center',
-  },
-  stageTitle: {
-    color: theme.colors.rouge[100],
-    textAlign: 'center',
-  },
-  stagePeriod: {
-    color: theme.colors.rouge[100],
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  avatarsRow: {
-    flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
   },
-  avatar: {
-    width: 130,
-    height: 130,
-    borderRadius: 16,
+  carouselItem: {
+    position: 'absolute',
   },
-  metaContainer: {
-    alignItems: 'center',
-  },
-  questionsText: {
-    color: theme.colors.rouge[100],
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  difficultyText: {
-    color: theme.colors.rouge[100],
-    textAlign: 'center',
+  cardShade: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: STAGE_CARD_RADIUS,
+    backgroundColor: '#000',
   },
   controlsRow: {
     flexDirection: 'row',

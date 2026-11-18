@@ -12,6 +12,16 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { usePlayers } from '../context/PlayersContext';
 import { AVATARS } from '../data/avatars';
 import { theme } from '../theme/theme';
+import { Podium } from '../components/Podium';
+import {
+  getPodiumSlots,
+  getWinners,
+  getWinnersTitle,
+  rankPlayers,
+} from '../lib/ranking';
+
+const PODIUM_CARD_WIDTH = 320;
+const PODIUM_WIDTH = PODIUM_CARD_WIDTH - 32;
 
 // avatar util
 function getAvatarSource(avatarId) {
@@ -37,113 +47,18 @@ export function GameEndScreen({
   const players = playersProp ?? localPlayers;
   const scores = scoresProp ?? computeLocalGameScores(players);
 
-  const ordered = [...players].sort(
-    (a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0)
-  );
-
-  // attribution des rangs avec égalités
-  let lastScore = null;
-  let lastRank = 0;
-  const orderedPlayersWithRank = ordered.map((p, index) => {
-    const score = scores[p.id] ?? 0;
-    let rank;
-    if (lastScore === null) {
-      rank = 1;
-    } else if (score === lastScore) {
-      rank = lastRank;
-    } else {
-      rank = index + 1;
-    }
-    lastScore = score;
-    lastRank = rank;
-    return { ...p, total: score, rank };
-  });
-
-  const maxScore = orderedPlayersWithRank[0]?.total ?? 0;
-  const winnersForTitle =
-    maxScore > 0
-      ? orderedPlayersWithRank.filter((p) => p.total === maxScore)
-      : [];
-
-  const topThree = orderedPlayersWithRank.slice(0, 3);
-
-  let titleLabel = 'Game results';
-  if (winnersForTitle.length === 1) {
-    titleLabel = `${winnersForTitle[0].name} wins the game !`;
-  } else if (winnersForTitle.length === 2) {
-    titleLabel = `${winnersForTitle[0].name} and ${winnersForTitle[1].name} win the game !`;
-  } else if (winnersForTitle.length >= 3) {
-    titleLabel = `${winnersForTitle[0].name}, ${winnersForTitle[1].name} and ${winnersForTitle[2].name} win the game !`;
-  }
+  // Classement avec égalités (1, 1, 2…) et podium correspondant
+  const orderedPlayersWithRank = rankPlayers(players, scores);
+  const podiumSlots = getPodiumSlots(orderedPlayersWithRank);
+  const titleLabel =
+    getWinnersTitle(getWinners(orderedPlayersWithRank), 'the game') ??
+    'Game results';
 
   return (
     <ScreenContainer style={styles.container}>
-      {/* Card podium avec image + avatars/noms */}
+      {/* Podium (gère les égalités) */}
       <View style={styles.podiumCard}>
-        <View style={styles.podiumInner}>
-          <Image
-            source={require('../../assets/images/podium.png')}
-            style={styles.podiumImage}
-            resizeMode="contain"
-          />
-
-          {/* 2e place */}
-          {topThree[1] && (
-            <View style={[styles.podiumSlot, styles.podiumSlotSecond]}>
-              <View style={styles.podiumAvatarWrapper}>
-                {getAvatarSource(topThree[1].avatarId) ? (
-                  <Image
-                    source={getAvatarSource(topThree[1].avatarId)}
-                    style={styles.podiumAvatar}
-                  />
-                ) : (
-                  <View style={styles.podiumAvatarPlaceholder} />
-                )}
-              </View>
-              <Text style={styles.podiumName} numberOfLines={1}>
-                {topThree[1].name}
-              </Text>
-            </View>
-          )}
-
-          {/* 1re place */}
-          {topThree[0] && (
-            <View style={[styles.podiumSlot, styles.podiumSlotFirst]}>
-              <View style={styles.podiumAvatarWrapper}>
-                {getAvatarSource(topThree[0].avatarId) ? (
-                  <Image
-                    source={getAvatarSource(topThree[0].avatarId)}
-                    style={styles.podiumAvatar}
-                  />
-                ) : (
-                  <View style={styles.podiumAvatarPlaceholder} />
-                )}
-              </View>
-              <Text style={styles.podiumName} numberOfLines={1}>
-                {topThree[0].name}
-              </Text>
-            </View>
-          )}
-
-          {/* 3e place */}
-          {topThree[2] && (
-            <View style={[styles.podiumSlot, styles.podiumSlotThird]}>
-              <View style={styles.podiumAvatarWrapper}>
-                {getAvatarSource(topThree[2].avatarId) ? (
-                  <Image
-                    source={getAvatarSource(topThree[2].avatarId)}
-                    style={styles.podiumAvatar}
-                  />
-                ) : (
-                  <View style={styles.podiumAvatarPlaceholder} />
-                )}
-              </View>
-              <Text style={styles.podiumName} numberOfLines={1}>
-                {topThree[2].name}
-              </Text>
-            </View>
-          )}
-        </View>
+        <Podium slots={podiumSlots} width={PODIUM_WIDTH} />
       </View>
 
       {/* Titre */}
@@ -162,7 +77,12 @@ export function GameEndScreen({
             const avatarSource = getAvatarSource(player.avatarId);
             return (
               <View key={player.id}>
-                <View style={styles.playerRow}>
+                <View
+                  style={[
+                    styles.playerRow,
+                    player.isConnected === false && styles.offlineRow,
+                  ]}
+                >
                   <Text style={styles.rankText}>{player.rank}</Text>
 
                   <View style={styles.playerInfo}>
@@ -174,7 +94,14 @@ export function GameEndScreen({
                     ) : (
                       <View style={styles.avatarPlaceholder} />
                     )}
-                    <Text style={styles.playerName}>{player.name}</Text>
+                    <View style={styles.playerTexts}>
+                      <Text style={styles.playerName} numberOfLines={1}>
+                        {player.name}
+                      </Text>
+                      {player.isConnected === false && (
+                        <Text style={styles.offlineText}>offline</Text>
+                      )}
+                    </View>
                   </View>
 
                   <View style={styles.scoreBadge}>
@@ -258,62 +185,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     marginBottom: 16,
-    width: 320,
+    width: PODIUM_CARD_WIDTH,
     alignSelf: 'center',
-  },
-  podiumInner: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  podiumImage: {
-    width: '100%',
-    height: 140,
-    borderRadius: 12,
-    marginTop: 104,
-  },
-  podiumSlot: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  podiumSlotFirst: {
-    top: 4,
-    left: '54%',
-    transform: [{ translateX: -40 }],
-  },
-  podiumSlotSecond: {
-    top: 32,
-    left: '20%',
-    transform: [{ translateX: -40 }],
-  },
-  podiumSlotThird: {
-    top: 48,
-    left: '87%',
-    transform: [{ translateX: -40 }],
-  },
-  podiumAvatarWrapper: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 8,
-    backgroundColor: theme.colors.gray[200],
-  },
-  podiumAvatar: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
-  podiumAvatarPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: theme.colors.gray[300],
-  },
-  podiumName: {
-    ...theme.typography.bodySm,
-    color: theme.colors.rouge[700],
-    maxWidth: 80,
-    textAlign: 'center',
   },
   title: {
     color: theme.colors.rouge[100],
@@ -363,9 +236,20 @@ const styles = StyleSheet.create({
     marginRight: 12,
     resizeMode: 'cover',
   },
+  playerTexts: {
+    flex: 1,
+  },
   playerName: {
     ...theme.typography.bodyMd,
     color: theme.colors.rouge[700],
+  },
+  offlineRow: {
+    opacity: 0.45,
+  },
+  offlineText: {
+    ...theme.typography.bodySmCondensed,
+    color: theme.colors.rouge[700],
+    opacity: 0.8,
   },
   scoreBadge: {
     width: 40,

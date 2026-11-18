@@ -70,9 +70,9 @@ export const HS01_QUESTIONS = [
     audioSource: require('../../../assets/audio/HS01/HS01_Q04_sample.mp3'),
     correctAnswer: {
       artist: 'Modjo',
-      song: 'Lady',
+      song: 'Lady (Hear Me Tonight)',
     },
-    answerTitle: 'Modjo – Lady (2000)',
+    answerTitle: 'Modjo – Lady (Hear Me Tonight) (2000)',
     answerCoverSource: require('../../../assets/images/covers/HS01/HS01_Q04_answer_cover.jpg'),
     correctionAudioSource: require('../../../assets/audio/HS01/HS01_Q04_correction.mp3'),
     correctionSteps: [

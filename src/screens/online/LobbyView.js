@@ -4,12 +4,13 @@
 // arrivent en direct. Seul l'hôte peut lancer la partie.
 
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { OnlinePlayerRow } from '../../components/OnlinePlayerRow';
+import { QRCodeView } from '../../components/QRCodeView';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { kickPlayer, MAX_PLAYERS, MIN_PLAYERS } from '../../online/roomApi';
-import { getRoomLink, shareRoom } from '../../online/share';
+import { copyRoomLink, getRoomLink, shareRoom } from '../../online/share';
 import { theme } from '../../theme/theme';
 
 export function LobbyView({ code, uid, isHost, players, onStart, onLeave }) {
@@ -26,12 +27,17 @@ export function LobbyView({ code, uid, isHost, players, onStart, onLeave }) {
     else setShareFeedback('');
   };
 
+  const handleCopy = async () => {
+    const ok = await copyRoomLink(code);
+    setShareFeedback(ok ? 'Link copied!' : 'Could not copy the link.');
+  };
+
   return (
-    <ScreenContainer style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer
+      scroll
+      style={styles.container}
+      contentStyle={styles.scrollContent}
+    >
         <View style={styles.headerRow}>
           <View style={styles.leaveButtonWrapper}>
             <Button
@@ -49,15 +55,31 @@ export function LobbyView({ code, uid, isHost, players, onStart, onLeave }) {
           Game code
         </Text>
         <Text style={styles.code}>{code}</Text>
-        {link && <Text style={styles.linkText}>{link}</Text>}
 
-        <View style={styles.shareButtonWrapper}>
+        {/* QR code : les autres joueurs flashent pour rejoindre */}
+        <View style={styles.qrWrapper}>
+          <QRCodeView value={link} size={180} color={theme.colors.rouge[900]} />
+          <Text style={styles.qrHint}>Scan to join</Text>
+        </View>
+
+        <Text style={styles.linkText}>{link}</Text>
+
+        <View style={styles.shareRow}>
           <Button
             variant="light"
             tone="rouge"
             size="sm"
-            title="Share link"
+            title="Share"
             onPress={handleShare}
+            style={styles.shareButton}
+          />
+          <Button
+            variant="light"
+            tone="rouge"
+            size="sm"
+            title="Copy link"
+            onPress={handleCopy}
+            style={styles.shareButton}
           />
         </View>
         {!!shareFeedback && (
@@ -121,7 +143,6 @@ export function LobbyView({ code, uid, isHost, players, onStart, onLeave }) {
             </Text>
           )}
         </View>
-      </ScrollView>
     </ScreenContainer>
   );
 }
@@ -161,9 +182,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
   },
-  shareButtonWrapper: {
-    width: 180,
+  qrWrapper: {
     alignSelf: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 10,
+    paddingBottom: 8,
+    marginBottom: 12,
+  },
+  qrHint: {
+    ...theme.typography.bodySmCondensed,
+    color: theme.colors.rouge[700],
+    marginTop: 4,
+  },
+  shareRow: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    gap: 12,
+  },
+  shareButton: {
+    width: 140,
   },
   feedbackText: {
     ...theme.typography.bodySmCondensed,

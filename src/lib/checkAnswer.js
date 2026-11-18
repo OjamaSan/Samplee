@@ -141,8 +141,13 @@ function isArtistCorrect(userArtist, correctArtist) {
    SONG CHECK
 ========================= */
 
+// Un titre officiel avec une partie entre parenthèses, comme
+// "Lady (Hear Me Tonight)", est accepté sous sa forme courte ("Lady") comme
+// sous sa forme complète, avec ou sans parenthèses ("Lady Hear Me Tonight").
 function isSongCorrect(userSong, correctSong) {
-  return isCloseMatch(userSong, correctSong);
+  if (isCloseMatch(userSong, correctSong)) return true;
+  const fullTitle = (correctSong || '').replace(/[()]/g, ' ');
+  return fullTitle !== correctSong && isCloseMatch(userSong, fullTitle);
 }
 
 /* =========================

@@ -1,6 +1,6 @@
 // src/components/Button.js
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Pressable,
@@ -19,6 +19,10 @@ import { theme } from '../theme/theme';
  *  - tone?: 'rouge' | 'turquoise' | 'blue' | 'green' | 'gray'
  *  - onPress?: () => void
  *  - disabled?: boolean
+ *  - active?: boolean : reste affiché enfoncé (ex. pendant une lecture audio).
+ *      Un bouton actif garde ses couleurs même s'il est désactivé.
+ *  - progress?: Animated.Value (0 → 1) : remplit le bouton de gauche à droite
+ *      d'une teinte un peu plus foncée que l'état enfoncé (barre de progression).
  */
 export function Button({
   title,
@@ -28,9 +32,13 @@ export function Button({
   tone = 'rouge',
   onPress,
   style,
-  disabled = false,
+  disabled: disabledProp = false,
+  active = false,
+  progress = null,
 }) {
-  const pressedAnim = useRef(new Animated.Value(0)).current;
+  const pressedAnim = useRef(new Animated.Value(active ? 1 : 0)).current;
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
   const palette = theme.colors[tone] || theme.colors.rouge;
   const isSolid = variant === 'solid';
@@ -56,34 +64,45 @@ export function Button({
     ? 150
     : undefined;
 
-  // Anim : le bouton descend, l'ombre monte jusqu'au haut
+  // Anim : le bouton descend et vient recouvrir son ombre colorée
+  // (qui ne bouge pas) ; l'ombre noire floue s'efface.
   const buttonTranslateY = pressedAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, shadowOffsetBase],
   });
 
-  const shadowTranslateY = pressedAnim.interpolate({
+  const shadowOpacity = pressedAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [shadowOffsetBase, 0],
+    outputRange: [1, 0],
   });
 
-  const handlePressIn = () => {
-    if (disabled) return;
+  const animateTo = (toValue) => {
     Animated.timing(pressedAnim, {
-      toValue: 1,
-      duration: 80,
+      toValue,
+      duration: toValue ? 80 : 120,
       useNativeDriver: true,
     }).start();
+  };
+
+  // Bouton maintenu enfoncé tant qu'il est actif
+  useEffect(() => {
+    animateTo(active ? 1 : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  const handlePressIn = () => {
+    if (disabledProp) return;
+    animateTo(1);
   };
 
   const handlePressOut = () => {
-    if (disabled) return;
-    Animated.timing(pressedAnim, {
-      toValue: 0,
-      duration: 120,
-      useNativeDriver: true,
-    }).start();
+    if (disabledProp || activeRef.current) return;
+    animateTo(0);
   };
+
+  const blurShadow = isLarge
+    ? '0px 5px 8px rgba(0, 0, 0, 0.28)'
+    : '0px 3px 6px rgba(0, 0, 0, 0.26)';
 
   const textStyle =
     size === 'lg'
@@ -102,13 +121,17 @@ export function Button({
       ]}
     >
       <Pressable
-        disabled={disabled}
+        disabled={disabledProp}
         style={styles.pressable}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={onPress}
       >
-        {({ pressed }) => {
+        {({ pressed: isPressedNow }) => {
+          const pressed = isPressedNow || active;
+          // Un bouton actif garde ses couleurs, même désactivé
+          const disabled = disabledProp && !active;
+
           // --- Couleurs en fonction de l'état ---
 
           // Corps du bouton
@@ -122,12 +145,11 @@ export function Button({
             ? palette[200]
             : palette[100];
 
-          // Ombre
-          const shadowColor = disabled
-            ? theme.colors.gray[500]
-            : pressed
-            ? palette[900]
-            : palette[700];
+          // Ombre colorée (cachée sous le bouton quand il est enfoncé)
+          const shadowColor = disabled ? theme.colors.gray[500] : palette[700];
+
+          // Remplissage de la barre de progression
+          const progressColor = isSolid ? palette[900] : palette[300];
 
           // Texte
           const textColor = disabled
@@ -151,7 +173,7 @@ export function Button({
 
           return (
             <View style={styles.innerContainer}>
-              {/* Ombre */}
+              {/* Ombres : colorée nette + noire floue, à l'état normal */}
               <Animated.View
                 pointerEvents="none"
                 style={[
@@ -160,7 +182,9 @@ export function Button({
                     height: buttonHeight,
                     borderRadius,
                     backgroundColor: shadowColor,
-                    transform: [{ translateY: shadowTranslateY }],
+                    boxShadow: blurShadow,
+                    opacity: shadowOpacity,
+                    transform: [{ translateY: shadowOffsetBase }],
                   },
                 ]}
               />
@@ -180,6 +204,22 @@ export function Button({
                   },
                 ]}
               >
+                {progress && (
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.progressFill,
+                      {
+                        backgroundColor: progressColor,
+                        width: progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ]}
+                  />
+                )}
                 <View style={styles.contentRow}>
                   {renderedIcon && (
                     <View
@@ -237,6 +277,13 @@ const styles = StyleSheet.create({
     right: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
   },
   contentRow: {
     flexDirection: 'row',

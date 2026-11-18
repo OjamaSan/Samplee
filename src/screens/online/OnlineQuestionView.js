@@ -4,11 +4,9 @@
 // seul l'hôte joue l'extrait (tout le monde est dans la même pièce) et
 // passe à la question suivante.
 
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import React, { useState } from 'react';
 import {
   Image,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,13 +14,19 @@ import {
 } from 'react-native';
 import { Button } from '../../components/Button';
 import { OnlinePlayerRow } from '../../components/OnlinePlayerRow';
+import { SamplePlayButton } from '../../components/SamplePlayButton';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import {
   getCurrentAnswers,
   getStageQuestions,
   goToNextQuestion,
+  goToPreviousQuestion,
+  isAnswerFinal,
+  startEditingAnswer,
   submitAnswer,
 } from '../../online/roomApi';
+import { useOnlinePlayback } from '../../online/useOnlinePlayback';
+import { useSamplePlayer } from '../../lib/samplePlayback';
 import { getStageTheme } from '../../theme/stageTheme';
 import { theme } from '../../theme/theme';
 
@@ -37,12 +41,31 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
   const answers = getCurrentAnswers(room);
   const myAnswer = answers[uid] ?? null;
 
-  const answeredCount = players.filter((p) => answers[p.id]).length;
-  const allAnswered = answeredCount === players.length;
-  const missingCount = players.length - answeredCount;
+  // Une réponse en cours de modification ne compte pas comme donnée
+  const answeredCount = players.filter((p) => isAnswerFinal(answers[p.id])).length;
+  // Les joueurs hors ligne ne bloquent pas la suite : on n'attend que
+  // ceux qui sont connectés.
+  const missingCount = players.filter(
+    (p) => p.isConnected && !isAnswerFinal(answers[p.id])
+  ).length;
+  const allAnswered = missingCount === 0;
+
+  // ------- Extrait : joué chez l'hôte, progression affichée partout -------
+  const sample = useSamplePlayer(isHost ? question.audioSource : null);
+  const playback = useOnlinePlayback({
+    code,
+    room,
+    isHost,
+    kind: 'sample',
+    questionId: question.id,
+    player: sample,
+  });
 
   // ------- Réponse du joueur -------
-  const [editing, setEditing] = useState(!myAnswer);
+  const [editing, setEditing] = useState(!isAnswerFinal(myAnswer));
+  // "Cancel" n'a de sens que si on modifie une réponse déjà envoyée
+  // (pas pendant l'envoi de la première).
+  const [canCancel, setCanCancel] = useState(!!myAnswer);
   const [draft, setDraft] = useState({
     artist: myAnswer?.artist ?? '',
     song: myAnswer?.song ?? '',
@@ -53,11 +76,14 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
   const send = async (answer) => {
     setSending(true);
     setSendError('');
+    // On referme le formulaire tout de suite (sans attendre la confirmation
+    // du serveur) pour éviter un affichage intermédiaire.
+    setEditing(false);
     try {
       await submitAnswer(code, room, answer);
-      setEditing(false);
     } catch {
       // Le plus souvent : l'hôte est passé à la question suivante entre-temps
+      setEditing(true);
       setSendError('Your answer could not be sent. Please try again.');
     } finally {
       setSending(false);
@@ -79,12 +105,21 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
   const handleChange = () => {
     setDraft({ artist: myAnswer?.artist ?? '', song: myAnswer?.song ?? '' });
     setEditing(true);
+    setCanCancel(true);
+    // Prévient l'hôte : il devra attendre que la réponse soit renvoyée
+    startEditingAnswer(code, room, myAnswer).catch(() => {});
+  };
+
+  // Annuler la modification = renvoyer la réponse précédente telle quelle
+  const handleCancelEdit = () => {
+    send({ artist: myAnswer?.artist ?? '', song: myAnswer?.song ?? '' });
   };
 
   // ------- Passage à la suite (hôte) -------
   const [advancing, setAdvancing] = useState(false);
   const handleNext = async () => {
     setAdvancing(true);
+    sample.stop();
     try {
       await goToNextQuestion(code, room);
     } finally {
@@ -92,15 +127,26 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
     }
   };
 
+  const handlePrevious = async () => {
+    setAdvancing(true);
+    sample.stop();
+    try {
+      await goToPreviousQuestion(code, room);
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
+  const isFirstQuestion = questionNumber <= 1;
   const nextLabel = isLastQuestion ? 'Finish stage' : 'Next question';
 
   return (
-    <ScreenContainer style={{ backgroundColor: stageTheme.background }}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer
+      scroll
+      style={{ backgroundColor: stageTheme.background }}
+      contentStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
         <Text style={[styles.progress, { color: stageTheme.primaryText }]}>
           Question {questionNumber}/{questions.length}
         </Text>
@@ -126,13 +172,15 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
           )}
         </View>
 
-        {isHost ? (
-          <HostSamplePlayer question={question} tone={tone} />
-        ) : (
-          <Text style={[styles.listenHint, { color: stageTheme.primaryText }]}>
-            🔊 Listen to the sample on the host&apos;s device
-          </Text>
-        )}
+        <SamplePlayButton
+          tone={tone}
+          label={isHost ? 'Play sample' : 'Waiting host'}
+          isPlaying={playback.isPlaying}
+          progress={playback.progress}
+          onPlay={isHost ? sample.play : undefined}
+          onStop={isHost ? sample.stop : undefined}
+          style={styles.playButton}
+        />
 
         <Text
           style={[
@@ -179,14 +227,14 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
                 onSubmitEditing={handleSubmit}
               />
               <View style={styles.inputFooter}>
-                {myAnswer && (
+                {canCancel && (
                   <Button
                     variant="light"
                     tone={tone}
                     size="sm"
                     title="Cancel"
                     style={styles.inputFooterButton}
-                    onPress={() => setEditing(false)}
+                    onPress={handleCancelEdit}
                     disabled={sending}
                   />
                 )}
@@ -254,7 +302,11 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
                 textColor={stageTheme.cardText}
                 right={
                   <Text style={[styles.statusText, { color: stageTheme.cardText }]}>
-                    {answers[player.id] ? '✓' : '…'}
+                    {isAnswerFinal(answers[player.id])
+                      ? '✓'
+                      : player.isConnected
+                        ? '…'
+                        : '–'}
                   </Text>
                 }
               />
@@ -274,14 +326,26 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
         <View style={styles.footer}>
           {isHost ? (
             <>
-              <Button
-                variant="light"
-                tone={tone}
-                size="lg"
-                title={nextLabel}
-                onPress={handleNext}
-                disabled={!allAnswered || advancing}
-              />
+              <View style={styles.navRow}>
+                <Button
+                  variant="light"
+                  tone={tone}
+                  size="lg"
+                  icon={<Text style={[styles.navIcon, { color: stageTheme.palette[700] }]}>◀</Text>}
+                  onPress={handlePrevious}
+                  disabled={isFirstQuestion || advancing}
+                  style={styles.prevButton}
+                />
+                <Button
+                  variant="light"
+                  tone={tone}
+                  size="lg"
+                  title={nextLabel}
+                  onPress={handleNext}
+                  disabled={!allAnswered || advancing}
+                  style={styles.nextButton}
+                />
+              </View>
               {!allAnswered && (
                 <>
                   <Text style={[styles.hintText, { color: stageTheme.primaryText }]}>
@@ -310,7 +374,6 @@ export function OnlineQuestionView({ code, room, uid, isHost, players, question 
             </Text>
           )}
         </View>
-      </ScrollView>
     </ScreenContainer>
   );
 }
@@ -320,34 +383,6 @@ export default OnlineQuestionView;
 function formatAnswer(answer) {
   if (!answer || (!answer.artist && !answer.song)) return "I don't know";
   return [answer.artist, answer.song].filter(Boolean).join(' – ');
-}
-
-// L'extrait n'est joué que sur l'appareil de l'hôte.
-function HostSamplePlayer({ question, tone }) {
-  const audio = useAudioPlayer(question.audioSource ?? null);
-  const status = useAudioPlayerStatus(audio);
-
-  const handlePress = () => {
-    if (!status.isLoaded) return;
-    if (status.playing) {
-      audio.pause();
-    } else {
-      audio.seekTo(0);
-      audio.play();
-    }
-  };
-
-  return (
-    <View style={styles.playButton}>
-      <Button
-        variant="light"
-        tone={tone}
-        size="sm"
-        title={status.playing ? 'Stop sample' : 'Play sample'}
-        onPress={handlePress}
-      />
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({
@@ -374,13 +409,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   playButton: {
-    width: 200,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  listenHint: {
-    ...theme.typography.bodyMd,
-    textAlign: 'center',
     marginBottom: 16,
   },
   questionText: {
@@ -444,6 +472,19 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 8,
+  },
+  navRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  prevButton: {
+    width: 75,
+  },
+  nextButton: {
+    flex: 1,
+  },
+  navIcon: {
+    ...theme.typography.headingSm,
   },
   hintText: {
     ...theme.typography.bodyMd,
