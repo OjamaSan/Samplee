@@ -23,6 +23,8 @@ import { theme } from '../theme/theme';
  *      Un bouton actif garde ses couleurs même s'il est désactivé.
  *  - progress?: Animated.Value (0 → 1) : remplit le bouton de gauche à droite
  *      d'une teinte un peu plus foncée que l'état enfoncé (barre de progression).
+ *  - minWidth?: number : remplace la largeur mini par défaut (ex. 0 quand le
+ *      bouton doit pouvoir rétrécir avec l'écran).
  */
 export function Button({
   title,
@@ -35,6 +37,7 @@ export function Button({
   disabled: disabledProp = false,
   active = false,
   progress = null,
+  minWidth: minWidthProp,
 }) {
   const pressedAnim = useRef(new Animated.Value(active ? 1 : 0)).current;
   const activeRef = useRef(active);
@@ -58,11 +61,12 @@ export function Button({
   //  - icon-only → carré-ish
   //  - lg → 150
   //  - sm → auto
-  const minWidth = isIconOnly
+  const defaultMinWidth = isIconOnly
     ? (isLarge ? buttonHeight : 40)
     : isLarge
     ? 150
     : undefined;
+  const minWidth = minWidthProp ?? defaultMinWidth;
 
   // Anim : le bouton descend et vient recouvrir son ombre colorée
   // (qui ne bouge pas) ; l'ombre noire floue s'efface.

@@ -34,6 +34,13 @@ const CARD_SPACING = CARD_WIDTH * 0.62;
 const SPRING = { damping: 18, stiffness: 160, mass: 0.9 };
 const SWIPE_THRESHOLD = 40;
 
+// Taille des boutons flèches (bouton "lg" carré) et ombre de la carte
+const ARROW_BUTTON_SIZE = 75;
+const CARD_SHADOW = 7;
+// Part de la largeur du carrousel que peut occuper la carte centrale,
+// pour laisser dépasser les voisines sur les côtés.
+const CARD_MAX_WIDTH_RATIO = 0.8;
+
 const wrapIndex = (index, count) => ((index % count) + count) % count;
 
 export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
@@ -44,6 +51,23 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
   // boucle). Elle suit le doigt pendant le swipe, puis se cale en douceur.
   const position = useSharedValue(0);
   const targetRef = useRef(0);
+
+  // Échelle des cartes : la carte (300×450) rétrécit pour tenir dans la
+  // place disponible (petits écrans, navigateur mobile avec ses barres).
+  const fit = useSharedValue(1);
+  const fitRef = useRef(1);
+
+  const handleCarouselLayout = (event) => {
+    const { width, height } = event.nativeEvent.layout;
+    if (!width || !height) return;
+    const next = Math.min(
+      1,
+      height / (CARD_HEIGHT + CARD_SHADOW),
+      (width * CARD_MAX_WIDTH_RATIO) / CARD_WIDTH
+    );
+    fitRef.current = next;
+    fit.value = next;
+  };
 
   const goTo = (target) => {
     targetRef.current = target;
@@ -69,11 +93,11 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy),
       onPanResponderMove: (_, g) => {
-        position.value = targetRef.current - g.dx / CARD_SPACING;
+        position.value = targetRef.current - g.dx / (CARD_SPACING * fitRef.current);
       },
       onPanResponderRelease: (_, g) => {
         const start = targetRef.current;
-        let steps = Math.round(-g.dx / CARD_SPACING);
+        let steps = Math.round(-g.dx / (CARD_SPACING * fitRef.current));
         if (steps === 0 && Math.abs(g.dx) > SWIPE_THRESHOLD) {
           steps = g.dx < 0 ? 1 : -1;
         }
@@ -134,7 +158,11 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
 
       {/* Carrousel des stages */}
       <View style={styles.cardWrapper}>
-        <View style={styles.swipeZone} {...panResponder.panHandlers}>
+        <View
+          style={styles.swipeZone}
+          onLayout={handleCarouselLayout}
+          {...panResponder.panHandlers}
+        >
           {STAGES.map((stage, index) => (
             <CarouselCard
               key={stage.id}
@@ -142,6 +170,7 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
               index={index}
               count={count}
               position={position}
+              fit={fit}
               onPress={() => handleCardPress(index)}
             />
           ))}
@@ -150,7 +179,7 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
 
       {/* Boutons : ←  Play  → */}
       <View style={styles.controlsRow}>
-        <View style={styles.iconButtonWrapper}>
+        <View style={styles.arrowButtonWrapper}>
           <Button
             variant="solid"
             tone="blue"
@@ -166,12 +195,13 @@ export function StageSelectScreen({ onBack, onPlay, isStagePlayable } = {}) {
             tone="green"
             size="lg"
             title="Play"
+            minWidth={0}
             onPress={handlePlay}
             disabled={!isPlayable}
           />
         </View>
 
-        <View style={styles.iconButtonWrapper}>
+        <View style={styles.arrowButtonWrapper}>
           <Button
             variant="solid"
             tone="blue"
@@ -192,7 +222,7 @@ export default StageSelectScreen;
  * courante : au centre en grand, les voisines plus petites, plus sombres
  * et derrière, les autres cachées.
  */
-function CarouselCard({ stage, index, count, position, onPress }) {
+function CarouselCard({ stage, index, count, position, fit, onPress }) {
   const cardStyle = useAnimatedStyle(() => {
     // Écart (en cartes) le plus court, le carrousel bouclant
     let offset = (((index - position.value) % count) + count) % count;
@@ -203,8 +233,12 @@ function CarouselCard({ stage, index, count, position, onPress }) {
       zIndex: Math.round(100 - distance * 10),
       opacity: interpolate(distance, [0, 1, 1.6, 2], [1, 1, 0.6, 0], 'clamp'),
       transform: [
-        { translateX: offset * CARD_SPACING },
-        { scale: interpolate(distance, [0, 1, 2], [1, 0.8, 0.65], 'clamp') },
+        { translateX: offset * CARD_SPACING * fit.value },
+        {
+          scale:
+            fit.value *
+            interpolate(distance, [0, 1, 2], [1, 0.8, 0.65], 'clamp'),
+        },
       ],
     };
   });
@@ -265,8 +299,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   swipeZone: {
-    width: '100%',
-    height: CARD_HEIGHT,
+    flex: 1,
+    alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -281,18 +315,16 @@ const styles = StyleSheet.create({
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     marginTop: 24,
   },
-  iconButtonWrapper: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 12,
+  // Flèches à taille fixe, Play prend la place restante : la rangée tient
+  // quelle que soit la largeur de l'écran.
+  arrowButtonWrapper: {
+    width: ARROW_BUTTON_SIZE,
   },
   playButtonWrapper: {
-    flex: 1.4,
-    alignItems: 'center',
-    paddingHorizontal: 12,
+    flex: 1,
   },
   iconText: {
     ...theme.typography.headingSm,
